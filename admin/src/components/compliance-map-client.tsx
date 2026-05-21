@@ -58,19 +58,32 @@ function FitToBounds({ bounds }: { bounds: LatLngBoundsExpression | null }) {
   return null;
 }
 
-function makePinIcon(count: number) {
+function makePinIcon() {
+  // Classic teardrop location pin — small, green, drop-shadowed. Matches the
+  // mockup style: pin shape with a white dot at its centre.
   const html = `
-    <div class="hg-pin">
-      <div class="hg-pin__bubble">${count}</div>
-      <div class="hg-pin__stem"></div>
-    </div>
+    <svg width="26" height="34" viewBox="0 0 26 34" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+      <defs>
+        <filter id="hg-pin-shadow" x="-50%" y="-50%" width="200%" height="200%">
+          <feDropShadow dx="0" dy="2" stdDeviation="1.4" flood-color="#0D2236" flood-opacity="0.35"/>
+        </filter>
+      </defs>
+      <path
+        d="M13 1.5 C6.65 1.5 1.5 6.65 1.5 13 c0 8.6 11.5 19.5 11.5 19.5 s11.5 -10.9 11.5 -19.5 c0 -6.35 -5.15 -11.5 -11.5 -11.5 z"
+        fill="#16BE66"
+        stroke="#0E8F4E"
+        stroke-width="1"
+        filter="url(#hg-pin-shadow)"
+      />
+      <circle cx="13" cy="13" r="4" fill="#FFFFFF"/>
+    </svg>
   `;
   return L.divIcon({
     html,
     className: "hg-pin-wrapper",
-    iconSize: [40, 56],
-    iconAnchor: [20, 56],
-    popupAnchor: [0, -52],
+    iconSize: [26, 34],
+    iconAnchor: [13, 34],
+    popupAnchor: [0, -30],
   });
 }
 
@@ -96,40 +109,13 @@ export default function ComplianceMapClient({ zones }: Props) {
   const bounds: LatLngBoundsExpression | null =
     allPoints.length > 0 ? L.latLngBounds(allPoints) : null;
 
-  // Sensible fallback for the centre: South Africa.
+  // Sensible fallback for the centre: Johannesburg CBD.
   const fallbackCentre: LatLngTuple = [-26.2041, 28.0473];
 
   return (
     <div className="relative h-[480px] w-full overflow-hidden rounded-md border border-border">
       <style>{`
         .hg-pin-wrapper { background: transparent !important; border: none !important; }
-        .hg-pin {
-          position: relative;
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-        }
-        .hg-pin__bubble {
-          background: ${BRAND_NAVY};
-          color: #fff;
-          font-weight: 700;
-          font-size: 13px;
-          width: 36px;
-          height: 36px;
-          border-radius: 999px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          border: 3px solid #fff;
-          box-shadow: 0 4px 16px rgba(13,34,54,0.32);
-        }
-        .hg-pin__stem {
-          width: 2px;
-          height: 18px;
-          background: ${BRAND_NAVY};
-          margin-top: -2px;
-          opacity: 0.85;
-        }
       `}</style>
       <MapContainer
         center={fallbackCentre}
@@ -170,7 +156,7 @@ export default function ComplianceMapClient({ zones }: Props) {
             <Marker
               key={`pin-${zone.id}`}
               position={centroid}
-              icon={makePinIcon(zone.activeVehicleCount)}
+              icon={makePinIcon()}
             >
               <Popup>
                 <PopupCard zone={zone} />
