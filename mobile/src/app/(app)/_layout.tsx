@@ -1,9 +1,16 @@
 import { Stack } from 'expo-router';
+import { useEffect } from 'react';
 
 import { useTheme } from '@/hooks/use-theme';
+import { registerPushToken } from '@/lib/push';
 
 export default function AppStackLayout() {
   const theme = useTheme();
+
+  // Register this device for server push once the driver is in the app.
+  useEffect(() => {
+    void registerPushToken();
+  }, []);
 
   return (
     <Stack
