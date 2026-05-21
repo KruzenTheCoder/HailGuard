@@ -2,6 +2,7 @@ import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 
+import { BrandLogo } from '@/components/brand-logo';
 import { ThemedText } from '@/components/themed-text';
 import { Button } from '@/components/ui/button';
 import { Screen } from '@/components/ui/screen';
@@ -46,7 +47,7 @@ export default function SignInScreen() {
   return (
     <Screen scroll contentStyle={styles.content}>
       <View style={styles.header}>
-        <ThemedText type="title">HailGuard</ThemedText>
+        <BrandLogo height={120} />
         <ThemedText type="default" themeColor="textSecondary">
           Stay compliant in your operating zone.
         </ThemedText>
@@ -120,6 +121,7 @@ const styles = StyleSheet.create({
   },
   header: {
     gap: Spacing.one,
+    alignItems: 'center',
   },
   toggle: {
     flexDirection: 'row',

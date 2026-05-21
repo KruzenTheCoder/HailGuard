@@ -1,21 +1,24 @@
 "use client";
 
-import { ShieldCheck } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useState } from "react";
 
+import { BrandLogo } from "@/components/brand-logo";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { createClient } from "@/lib/supabase/client";
+
+type Stage = "password" | "otp-email" | "otp-code";
 
 function LoginInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const supabase = createClient();
 
-  const [stage, setStage] = useState<"email" | "code">("email");
+  const [stage, setStage] = useState<Stage>("password");
   const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [code, setCode] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(
@@ -23,6 +26,38 @@ function LoginInner() {
       ? "That account is not an administrator."
       : null
   );
+
+  function goTo(next: Stage) {
+    setStage(next);
+    setCode("");
+    setError(null);
+    if (next !== "password") setPassword("");
+  }
+
+  async function signInWithPassword(e: React.FormEvent) {
+    e.preventDefault();
+    setError(null);
+    if (!email.trim()) {
+      setError("Enter your email address.");
+      return;
+    }
+    if (!password) {
+      setError("Enter your password.");
+      return;
+    }
+    setLoading(true);
+    const { error: signInError } = await supabase.auth.signInWithPassword({
+      email: email.trim(),
+      password,
+    });
+    setLoading(false);
+    if (signInError) {
+      setError(signInError.message);
+      return;
+    }
+    router.replace("/admin");
+    router.refresh();
+  }
 
   async function sendCode(e: React.FormEvent) {
     e.preventDefault();
@@ -41,7 +76,7 @@ function LoginInner() {
       setError(otpError.message);
       return;
     }
-    setStage("code");
+    setStage("otp-code");
   }
 
   async function verify(e: React.FormEvent) {
@@ -62,22 +97,52 @@ function LoginInner() {
     router.refresh();
   }
 
+  const description =
+    stage === "password"
+      ? "Sign in with your administrator email and password."
+      : stage === "otp-email"
+        ? "We'll email you a 6-digit code to sign in."
+        : `Enter the 6-digit code sent to ${email}.`;
+
   return (
     <div className="flex min-h-screen items-center justify-center bg-muted/40 p-4">
       <Card className="w-full max-w-sm">
         <CardHeader className="items-center text-center">
-          <div className="mb-2 flex h-12 w-12 items-center justify-center rounded-xl bg-primary text-primary-foreground">
-            <ShieldCheck className="h-6 w-6" />
-          </div>
+          <BrandLogo height={72} className="mb-2" />
           <CardTitle>HailGuard Admin</CardTitle>
-          <CardDescription>
-            {stage === "email"
-              ? "Sign in with your administrator email."
-              : `Enter the 6-digit code sent to ${email}.`}
-          </CardDescription>
+          <CardDescription>{description}</CardDescription>
         </CardHeader>
         <CardContent>
-          {stage === "email" ? (
+          {stage === "password" ? (
+            <form onSubmit={signInWithPassword} className="flex flex-col gap-3">
+              <Input
+                type="email"
+                inputMode="email"
+                autoComplete="email"
+                placeholder="admin@example.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+              />
+              <Input
+                type="password"
+                autoComplete="current-password"
+                placeholder="Password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+              />
+              {error ? <p className="text-sm text-destructive">{error}</p> : null}
+              <Button type="submit" disabled={loading}>
+                {loading ? "Signing in…" : "Sign in"}
+              </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                onClick={() => goTo("otp-email")}
+              >
+                Sign in with email code instead
+              </Button>
+            </form>
+          ) : stage === "otp-email" ? (
             <form onSubmit={sendCode} className="flex flex-col gap-3">
               <Input
                 type="email"
@@ -90,6 +155,13 @@ function LoginInner() {
               {error ? <p className="text-sm text-destructive">{error}</p> : null}
               <Button type="submit" disabled={loading}>
                 {loading ? "Sending…" : "Send code"}
+              </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                onClick={() => goTo("password")}
+              >
+                Use password instead
               </Button>
             </form>
           ) : (
@@ -108,11 +180,7 @@ function LoginInner() {
               <Button
                 type="button"
                 variant="ghost"
-                onClick={() => {
-                  setStage("email");
-                  setCode("");
-                  setError(null);
-                }}
+                onClick={() => goTo("otp-email")}
               >
                 Use a different email
               </Button>
