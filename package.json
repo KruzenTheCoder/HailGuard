@@ -1,0 +1,20 @@
+{
+  "name": "hailguard",
+  "version": "0.1.0",
+  "private": true,
+  "description": "E-Hailing Zone Compliance Platform — Supabase backend, Expo mobile app, Next.js admin portal.",
+  "workspaces": [
+    "shared",
+    "admin",
+    "mobile"
+  ],
+  "scripts": {
+    "admin": "npm run dev --workspace admin",
+    "mobile": "npm run start --workspace mobile",
+    "shared:build": "npm run build --workspace shared",
+    "db:types": "supabase gen types typescript --local > shared/src/database.types.ts"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
