@@ -1,8 +1,12 @@
-export function formatCurrency(amount: number, currency = 'ZAR'): string {
+// HailGuard is South Africa only — every amount is ZAR.
+
+const ZAR_FORMAT = new Intl.NumberFormat('en-ZA', { style: 'currency', currency: 'ZAR' });
+
+export function formatZAR(amount: number): string {
   try {
-    return new Intl.NumberFormat('en-ZA', { style: 'currency', currency }).format(amount);
+    return ZAR_FORMAT.format(amount);
   } catch {
-    return `${currency} ${amount.toFixed(2)}`;
+    return `R ${amount.toFixed(2)}`;
   }
 }
 

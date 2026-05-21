@@ -10,7 +10,6 @@ export interface CheckoutRequest {
   zoneId: string;
   planType: PlanType;
   amount: number;
-  currency: string;
   /** Where the provider should send the user after payment. */
   returnUrl?: string;
   cancelUrl?: string;

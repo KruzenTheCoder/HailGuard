@@ -11,7 +11,6 @@ type SubscriptionRow = {
   plan_type: PlanType;
   status: SubscriptionStatus;
   amount: number;
-  currency: string;
   start_date: string | null;
   end_date: string | null;
   created_at: string;
@@ -24,7 +23,6 @@ export type SubscriptionView = {
   status: SubscriptionStatus;
   planType: PlanType;
   amount: number;
-  currency: string;
   startDate: string | null;
   endDate: string | null;
   zoneId: string;
@@ -40,7 +38,6 @@ function mapSubscription(row: SubscriptionRow): SubscriptionView {
     status: row.status,
     planType: row.plan_type,
     amount: Number(row.amount),
-    currency: row.currency,
     startDate: row.start_date,
     endDate: row.end_date,
     zoneId: row.zone_id,
@@ -75,7 +72,6 @@ export type CheckoutInput = {
   zoneId: string;
   planType: PlanType;
   amount: number;
-  currency: string;
 };
 
 /**
@@ -94,7 +90,6 @@ export function useCheckout() {
           zone_id: input.zoneId,
           plan_type: input.planType,
           amount: input.amount,
-          currency: input.currency,
           status: 'pending_payment',
         })
         .select('id')
@@ -108,7 +103,6 @@ export function useCheckout() {
         zoneId: input.zoneId,
         planType: input.planType,
         amount: input.amount,
-        currency: input.currency,
       });
 
       // 3. Confirm + activate (records payment, sets dates) via RPC.

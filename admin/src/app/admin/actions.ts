@@ -143,7 +143,6 @@ export async function createZone(input: CreateZoneInput) {
       description: input.description.trim() || null,
       monthly_fee: input.monthlyFee,
       yearly_fee: input.yearlyFee,
-      currency: "ZAR",
     })
     .select("id")
     .single<{ id: string }>();

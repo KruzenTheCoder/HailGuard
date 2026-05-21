@@ -99,7 +99,6 @@ export interface Zone {
   description: string | null;
   monthlyFee: number;
   yearlyFee: number;
-  currency: string;
   polygonCoordinates: PolygonCoordinates | null;
   isActive: boolean;
   createdAt: string;
@@ -113,7 +112,6 @@ export interface Subscription {
   planType: PlanType;
   status: SubscriptionStatus;
   amount: number;
-  currency: string;
   startDate: string | null;
   endDate: string | null;
   createdAt: string;
@@ -126,7 +124,6 @@ export interface Payment {
   provider: string;
   providerReference: string | null;
   amount: number;
-  currency: string;
   status: PaymentStatus;
   createdAt: string;
   updatedAt: string;

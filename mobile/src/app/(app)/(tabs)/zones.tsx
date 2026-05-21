@@ -8,7 +8,7 @@ import { ThemedText } from '@/components/themed-text';
 import { Card } from '@/components/ui/card';
 import { Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
-import { formatCurrency } from '@/lib/format';
+import { formatZAR } from '@/lib/format';
 
 export default function ZonesScreen() {
   const theme = useTheme();
@@ -53,10 +53,10 @@ export default function ZonesScreen() {
               </View>
               <View style={styles.fees}>
                 <ThemedText type="small" themeColor="textSecondary">
-                  {formatCurrency(item.monthlyFee, item.currency)}/mo
+                  {formatZAR(item.monthlyFee)}/mo
                 </ThemedText>
                 <ThemedText type="small" themeColor="textSecondary">
-                  {formatCurrency(item.yearlyFee, item.currency)}/yr
+                  {formatZAR(item.yearlyFee)}/yr
                 </ThemedText>
               </View>
             </Card>

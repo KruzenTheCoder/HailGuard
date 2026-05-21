@@ -39,17 +39,26 @@ export type DashboardMetrics = {
   revenueCollected: number;
   /** Active drivers / total drivers, 0–100. */
   compliancePercent: number;
-  /** 30-element series, oldest first, used for sparklines. */
+  /**
+   * 30-element series, oldest first, used for the bar charts on each KPI card.
+   * Every entry is a **per-day** count (not cumulative) so each bar represents
+   * activity on that day. Days outside the window are ignored — we do NOT
+   * absorb pre-window history into bar[0].
+   */
   series: {
-    /** Cumulative approved drivers at end of each day. */
+    /** New drivers approved on each day in the window. */
     approvedDrivers: number[];
-    /** Cumulative active vehicles at end of each day. */
+    /** Vehicles flipped to active on each day in the window. */
     activeVehicles: number[];
-    /** New pending applications received per day (profiles + vehicles). */
+    /** New pending applications received on each day (profiles + vehicles). */
     newPending: number[];
-    /** Daily compliance %, computed as cumulative active drivers / cumulative drivers. */
+    /**
+     * End-of-day compliance % (approved drivers ÷ total drivers). This is the
+     * only series that includes pre-window history, because a snapshot ratio
+     * needs accurate totals at every point in time.
+     */
     compliance: number[];
-    /** Daily succeeded payment revenue. */
+    /** Succeeded payment revenue per day. */
     revenue: number[];
   };
 };
@@ -92,8 +101,6 @@ function dayBuckets(days: number): { dates: Date[]; index: Map<string, number> }
 export async function getDashboardMetrics(): Promise<DashboardMetrics> {
   const supabase = await createClient();
 
-  // Pull everything we need in parallel. The volumes here are bounded by the
-  // tenant size and these queries hit indexed columns, so this stays cheap.
   const [allProfiles, allVehicles, activeZonesCount, payments, activeSubs] = await Promise.all([
     supabase
       .from("driver_profiles")
@@ -131,79 +138,90 @@ export async function getDashboardMetrics(): Promise<DashboardMetrics> {
     ? 0
     : Math.round((approvedProfiles.length / totalDrivers) * 100);
 
-  // Sparkline buckets.
   const { dates, index } = dayBuckets(SPARKLINE_DAYS);
   const startMs = dates[0].getTime();
   const endMs = dates[dates.length - 1].getTime() + 86_400_000;
 
+  // Honest per-day counters — events outside the window are skipped, not
+  // crammed into bar[0]. A "flat" first bar on a young tenant is correct.
+  const bucketByDay = (
+    rows: { time: string }[],
+    out: number[],
+    weight = 1,
+  ) => {
+    for (const row of rows) {
+      const t = Date.parse(row.time);
+      if (Number.isNaN(t) || t < startMs || t >= endMs) continue;
+      const key = new Date(t).toISOString().slice(0, 10);
+      const i = index.get(key);
+      if (i !== undefined) out[i] += weight;
+    }
+  };
+
+  const approvedDrivers = new Array(SPARKLINE_DAYS).fill(0) as number[];
+  bucketByDay(
+    approvedProfiles.map((p) => ({ time: p.updated_at ?? p.created_at })),
+    approvedDrivers,
+  );
+
+  const activeVehiclesSeries = new Array(SPARKLINE_DAYS).fill(0) as number[];
+  bucketByDay(
+    vehicles
+      .filter((v) => v.status === "active")
+      .map((v) => ({ time: v.updated_at ?? v.created_at })),
+    activeVehiclesSeries,
+  );
+
   const newPending = new Array(SPARKLINE_DAYS).fill(0) as number[];
-  for (const row of [...profiles, ...vehicles]) {
-    if (row.status !== "pending") continue;
-    const created = Date.parse(row.created_at);
-    if (created < startMs || created >= endMs) continue;
-    const key = new Date(created).toISOString().slice(0, 10);
-    const i = index.get(key);
-    if (i !== undefined) newPending[i] += 1;
-  }
+  bucketByDay(
+    [...profiles, ...vehicles]
+      .filter((r) => r.status === "pending")
+      .map((r) => ({ time: r.created_at })),
+    newPending,
+  );
 
   const revenue = new Array(SPARKLINE_DAYS).fill(0) as number[];
   for (const p of paymentRows) {
-    const created = Date.parse(p.created_at);
-    if (created < startMs || created >= endMs) continue;
-    const key = new Date(created).toISOString().slice(0, 10);
+    const t = Date.parse(p.created_at);
+    if (Number.isNaN(t) || t < startMs || t >= endMs) continue;
+    const key = new Date(t).toISOString().slice(0, 10);
     const i = index.get(key);
     if (i !== undefined) revenue[i] += Number(p.amount);
   }
 
-  // Cumulative series. We treat created_at as "joined" and updated_at as the
-  // moment a status flipped. For drivers approved/vehicles active, we credit
-  // the cumulative count on the updated_at day if status is now active.
-  const approvedByDay = new Array(SPARKLINE_DAYS).fill(0) as number[];
+  // Compliance % is a SNAPSHOT, so we DO include pre-window history. Build
+  // cumulative approved + cumulative total drivers at each day, then ratio.
+  const approvedCumulative = new Array(SPARKLINE_DAYS).fill(0) as number[];
   for (const p of approvedProfiles) {
     const t = Date.parse(p.updated_at ?? p.created_at);
+    if (Number.isNaN(t)) continue;
     if (t < startMs) {
-      // Approved before the window — count from the first day.
-      approvedByDay[0] += 1;
+      approvedCumulative[0] += 1;
       continue;
     }
     if (t >= endMs) continue;
-    const key = new Date(t).toISOString().slice(0, 10);
-    const i = index.get(key);
-    if (i !== undefined) approvedByDay[i] += 1;
+    const i = index.get(new Date(t).toISOString().slice(0, 10));
+    if (i !== undefined) approvedCumulative[i] += 1;
   }
-  for (let i = 1; i < SPARKLINE_DAYS; i++) approvedByDay[i] += approvedByDay[i - 1];
+  for (let i = 1; i < SPARKLINE_DAYS; i++) approvedCumulative[i] += approvedCumulative[i - 1];
 
-  const activeVehiclesByDay = new Array(SPARKLINE_DAYS).fill(0) as number[];
-  for (const v of vehicles.filter((x) => x.status === "active")) {
-    const t = Date.parse(v.updated_at ?? v.created_at);
-    if (t < startMs) {
-      activeVehiclesByDay[0] += 1;
-      continue;
-    }
-    if (t >= endMs) continue;
-    const key = new Date(t).toISOString().slice(0, 10);
-    const i = index.get(key);
-    if (i !== undefined) activeVehiclesByDay[i] += 1;
-  }
-  for (let i = 1; i < SPARKLINE_DAYS; i++) activeVehiclesByDay[i] += activeVehiclesByDay[i - 1];
-
-  // Cumulative total drivers per day (for compliance ratio).
-  const totalDriversByDay = new Array(SPARKLINE_DAYS).fill(0) as number[];
+  const totalDriversCumulative = new Array(SPARKLINE_DAYS).fill(0) as number[];
   for (const p of profiles) {
     const t = Date.parse(p.created_at);
+    if (Number.isNaN(t)) continue;
     if (t < startMs) {
-      totalDriversByDay[0] += 1;
+      totalDriversCumulative[0] += 1;
       continue;
     }
     if (t >= endMs) continue;
-    const key = new Date(t).toISOString().slice(0, 10);
-    const i = index.get(key);
-    if (i !== undefined) totalDriversByDay[i] += 1;
+    const i = index.get(new Date(t).toISOString().slice(0, 10));
+    if (i !== undefined) totalDriversCumulative[i] += 1;
   }
-  for (let i = 1; i < SPARKLINE_DAYS; i++) totalDriversByDay[i] += totalDriversByDay[i - 1];
+  for (let i = 1; i < SPARKLINE_DAYS; i++)
+    totalDriversCumulative[i] += totalDriversCumulative[i - 1];
 
-  const complianceByDay = approvedByDay.map((approved, i) => {
-    const total = totalDriversByDay[i];
+  const compliance = approvedCumulative.map((approved, i) => {
+    const total = totalDriversCumulative[i];
     return total === 0 ? 0 : Math.round((approved / total) * 100);
   });
 
@@ -220,10 +238,10 @@ export async function getDashboardMetrics(): Promise<DashboardMetrics> {
     revenueCollected,
     compliancePercent,
     series: {
-      approvedDrivers: approvedByDay,
-      activeVehicles: activeVehiclesByDay,
+      approvedDrivers,
+      activeVehicles: activeVehiclesSeries,
       newPending,
-      compliance: complianceByDay,
+      compliance,
       revenue,
     },
   };
@@ -247,9 +265,7 @@ export type DriverVehicleStatusRow = {
   licensePlate: string;
   vehicleStatus: VehicleStatus;
   roadworthyExpiresAt: string | null;
-  /** Names of zones with an active subscription tied to this vehicle. */
   activeZones: string[];
-  /** Composite "is everything good?" flag. */
   fullyCompliant: boolean;
   createdAt: string;
 };
@@ -360,7 +376,7 @@ export async function getRecentActivity(limit = 12): Promise<ActivityRow[]> {
 }
 
 // ---------------------------------------------------------------------------
-// Existing queue & detail queries below remain unchanged.
+// Pending queues + driver detail
 // ---------------------------------------------------------------------------
 export type ProfileWithUser = { profile: DriverProfile; user: UserLite | null };
 
@@ -456,7 +472,6 @@ export type SubscriptionListItem = {
   status: string;
   planType: string;
   amount: number;
-  currency: string;
   startDate: string | null;
   endDate: string | null;
   zoneName: string;
@@ -469,7 +484,6 @@ type SubscriptionListRow = {
   status: string;
   plan_type: string;
   amount: number;
-  currency: string;
   start_date: string | null;
   end_date: string | null;
   created_at: string;
@@ -499,7 +513,6 @@ export async function getSubscriptions(): Promise<SubscriptionListItem[]> {
       status: row.status,
       planType: row.plan_type,
       amount: Number(row.amount),
-      currency: row.currency,
       startDate: row.start_date,
       endDate: row.end_date,
       zoneName: row.zones?.name ?? "Unknown zone",
@@ -520,7 +533,7 @@ export type ZoneListItem = {
   description: string | null;
   monthlyFee: number;
   yearlyFee: number;
-  currency: string;
+  polygon: [number, number][] | null;
   isActive: boolean;
 };
 
@@ -530,7 +543,7 @@ type ZoneListRow = {
   description: string | null;
   monthly_fee: number;
   yearly_fee: number;
-  currency: string;
+  polygon_coordinates: [number, number][] | null;
   is_active: boolean;
 };
 
@@ -538,7 +551,7 @@ export async function getZonesAdmin(): Promise<ZoneListItem[]> {
   const supabase = await createClient();
   const { data } = await supabase
     .from("zones")
-    .select("id, name, description, monthly_fee, yearly_fee, currency, is_active")
+    .select("id, name, description, monthly_fee, yearly_fee, polygon_coordinates, is_active")
     .order("name")
     .returns<ZoneListRow[]>();
 
@@ -548,7 +561,7 @@ export async function getZonesAdmin(): Promise<ZoneListItem[]> {
     description: row.description,
     monthlyFee: Number(row.monthly_fee),
     yearlyFee: Number(row.yearly_fee),
-    currency: row.currency,
+    polygon: row.polygon_coordinates,
     isActive: row.is_active,
   }));
 }
@@ -562,7 +575,6 @@ export type VerifyPassResult = {
   planType: "monthly" | "yearly";
   startDate: string | null;
   endDate: string | null;
-  currency: string;
   zone: { id: string; name: string };
   vehicle: { make: string; model: string; year: number; licensePlate: string };
   driver: { displayName: string };
@@ -587,6 +599,33 @@ export async function getVerifyPass(
 }
 
 // ---------------------------------------------------------------------------
+// Offline pass token verification (signature-only check)
+// ---------------------------------------------------------------------------
+export type VerifyPassToken = {
+  signatureValid: boolean;
+  expired: boolean;
+  payload: {
+    sid: string;
+    plate: string;
+    zone: string;
+    plan: "monthly" | "yearly";
+    st: string | null;
+    exp: string | null;
+    iat: number;
+  };
+};
+
+export async function verifyPassToken(token: string): Promise<VerifyPassToken | null> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("verify_pass_token", { p_token: token });
+  if (error) {
+    console.error("verify_pass_token RPC error", error);
+    return null;
+  }
+  return (data as VerifyPassToken | null) ?? null;
+}
+
+// ---------------------------------------------------------------------------
 // Zone fleet summary (drives the compliance map)
 // ---------------------------------------------------------------------------
 export type ZoneFleetSummary = {
@@ -595,7 +634,6 @@ export type ZoneFleetSummary = {
   description: string | null;
   monthlyFee: number;
   yearlyFee: number;
-  currency: string;
   polygon: [number, number][] | null;
   isActive: boolean;
   activeVehicleCount: number;
@@ -608,7 +646,6 @@ type ZoneFleetRow = {
   description: string | null;
   monthly_fee: number;
   yearly_fee: number;
-  currency: string;
   polygon_coordinates: [number, number][] | null;
   is_active: boolean;
 };
@@ -621,7 +658,7 @@ export async function getZoneFleetSummary(): Promise<ZoneFleetSummary[]> {
     supabase
       .from("zones")
       .select(
-        "id, name, description, monthly_fee, yearly_fee, currency, polygon_coordinates, is_active",
+        "id, name, description, monthly_fee, yearly_fee, polygon_coordinates, is_active",
       )
       .eq("is_active", true)
       .order("name")
@@ -649,7 +686,6 @@ export async function getZoneFleetSummary(): Promise<ZoneFleetSummary[]> {
       description: z.description,
       monthlyFee: Number(z.monthly_fee),
       yearlyFee: Number(z.yearly_fee),
-      currency: z.currency,
       polygon: z.polygon_coordinates,
       isActive: z.is_active,
       activeVehicleCount: totals?.vehicles.size ?? 0,

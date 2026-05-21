@@ -14,7 +14,7 @@ import { LoadingScreen } from '@/components/ui/loading';
 import { Screen } from '@/components/ui/screen';
 import { Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
-import { formatCurrency } from '@/lib/format';
+import { formatZAR } from '@/lib/format';
 
 export default function SubscribeScreen() {
   const theme = useTheme();
@@ -52,7 +52,6 @@ export default function SubscribeScreen() {
         zoneId: zone!.id,
         planType: plan,
         amount,
-        currency: zone!.currency,
       });
       Alert.alert('Subscription active', `Your vehicle is now compliant in ${zone!.name}.`);
       router.replace('/certificate');
@@ -92,7 +91,7 @@ export default function SubscribeScreen() {
                 },
               ]}>
               <ThemedText type="smallBold">{p === 'monthly' ? 'Monthly' : 'Yearly'}</ThemedText>
-              <ThemedText type="default">{formatCurrency(price, zone.currency)}</ThemedText>
+              <ThemedText type="default">{formatZAR(price)}</ThemedText>
             </Pressable>
           );
         })}
@@ -148,7 +147,7 @@ export default function SubscribeScreen() {
       ) : null}
 
       <Button
-        title={`Pay ${formatCurrency(amount, zone.currency)} & subscribe`}
+        title={`Pay ${formatZAR(amount)} & subscribe`}
         loading={checkout.isPending}
         disabled={eligibleVehicles.length === 0}
         onPress={pay}

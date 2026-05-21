@@ -16,19 +16,6 @@ import {
 
 export const dynamic = "force-dynamic";
 
-/**
- * Convert a cumulative series into a daily-delta series for histogram display.
- * Bar charts read better as deltas-per-day than as a slowly-rising line.
- */
-function toDaily(cumulative: number[]): number[] {
-  if (cumulative.length === 0) return [];
-  const out: number[] = [cumulative[0]];
-  for (let i = 1; i < cumulative.length; i++) {
-    out.push(Math.max(0, cumulative[i] - cumulative[i - 1]));
-  }
-  return out;
-}
-
 export default async function DashboardPage() {
   const [m, fleet, activity, zoneFleet] = await Promise.all([
     getDashboardMetrics(),
@@ -37,12 +24,10 @@ export default async function DashboardPage() {
     getZoneFleetSummary(),
   ]);
 
-  // Bar-chart series. Compliance % is already daily; the cumulative drivers /
-  // vehicles series get converted to per-day deltas so the bars read as
-  // "growth per day" instead of a barely-changing line.
+  // All series are honest per-day counts already (compliance is daily %).
   const complianceSeries = m.series.compliance;
-  const driverSeries = toDaily(m.series.approvedDrivers);
-  const vehicleSeries = toDaily(m.series.activeVehicles);
+  const driverSeries = m.series.approvedDrivers;
+  const vehicleSeries = m.series.activeVehicles;
   const pendingSeries = m.series.newPending;
 
   return (

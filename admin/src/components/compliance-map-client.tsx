@@ -188,7 +188,7 @@ function PopupCard({ zone }: { zone: ZoneFleetSummary }) {
           {zone.activeSubscriptionCount === 1 ? "" : "s"}
         </div>
         <div style={{ marginTop: 6, opacity: 0.7 }}>
-          {zone.currency} {zone.monthlyFee.toFixed(0)} / month
+          R{zone.monthlyFee.toFixed(0)} / month
         </div>
       </div>
     </div>

@@ -9,7 +9,6 @@ type ZoneRow = {
   description: string | null;
   monthly_fee: number;
   yearly_fee: number;
-  currency: string;
   polygon_coordinates: Zone['polygonCoordinates'];
   is_active: boolean;
   created_at: string;
@@ -23,7 +22,6 @@ function mapZone(row: ZoneRow): Zone {
     description: row.description,
     monthlyFee: Number(row.monthly_fee),
     yearlyFee: Number(row.yearly_fee),
-    currency: row.currency,
     polygonCoordinates: row.polygon_coordinates,
     isActive: row.is_active,
     createdAt: row.created_at,

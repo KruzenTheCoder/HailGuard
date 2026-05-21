@@ -64,7 +64,7 @@ export function ComplianceMap({ zones }: { zones: ZoneFleetSummary[] }) {
                 </div>
                 <p className="mt-1 text-xs text-muted-foreground">
                   {z.activeSubscriptionCount} subscription
-                  {z.activeSubscriptionCount === 1 ? "" : "s"} · {z.currency}{" "}
+                  {z.activeSubscriptionCount === 1 ? "" : "s"} · R
                   {z.monthlyFee.toFixed(0)}/mo
                 </p>
               </li>
