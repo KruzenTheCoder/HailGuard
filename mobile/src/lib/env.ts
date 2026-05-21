@@ -8,9 +8,12 @@
 
 const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL;
 const supabaseAnonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
+const verifyBaseUrl = process.env.EXPO_PUBLIC_VERIFY_BASE_URL ?? 'https://hailguard.zone';
 
 export const env = {
   supabaseUrl: supabaseUrl ?? '',
   supabaseAnonKey: supabaseAnonKey ?? '',
+  /** Base URL the Zone Pass QR resolves to. */
+  verifyBaseUrl: verifyBaseUrl.replace(/\/+$/, ''),
   configured: !!(supabaseUrl && supabaseAnonKey),
 } as const;

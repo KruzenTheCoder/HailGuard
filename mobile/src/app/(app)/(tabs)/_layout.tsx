@@ -21,6 +21,8 @@ export default function AppTabsLayout() {
         options={{
           title: 'Compliance',
           tabBarLabel: 'Home',
+          // The home screen owns its own navy hero so the default header is hidden.
+          headerShown: false,
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="shield-checkmark-outline" color={color} size={size} />
           ),

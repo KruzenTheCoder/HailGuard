@@ -10,6 +10,7 @@ import { LoadingScreen } from '@/components/ui/loading';
 import { Screen } from '@/components/ui/screen';
 import { Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
+import { env } from '@/lib/env';
 import { formatDate } from '@/lib/format';
 
 export default function CertificateScreen() {
@@ -37,22 +38,20 @@ export default function CertificateScreen() {
   return (
     <Screen scroll>
       <ThemedText type="small" themeColor="textSecondary">
-        Show this certificate to an inspector to verify compliance. Each QR encodes the active
-        subscription details.
+        Show this digital pass to an inspector. The QR resolves to a public
+        verification page on hailguard.zone — no special scanner required.
       </ThemedText>
 
       {active.map((sub) => {
-        const payload = JSON.stringify({
-          s: sub.id,
-          plate: sub.licensePlate,
-          zone: sub.zoneName,
-          until: sub.endDate,
-        });
+        const verifyUrl = `${env.verifyBaseUrl}/verify/${sub.id}`;
         return (
           <Card key={sub.id} style={styles.cert}>
             <View style={styles.headerRow}>
               <View style={styles.flex}>
-                <ThemedText type="smallBold">{sub.zoneName}</ThemedText>
+                <ThemedText type="smallBold" style={styles.eyebrow}>
+                  ZONE PASS
+                </ThemedText>
+                <ThemedText style={styles.zoneName}>{sub.zoneName}</ThemedText>
                 <ThemedText type="small" themeColor="textSecondary">
                   {sub.vehicleLabel} · {sub.licensePlate}
                 </ThemedText>
@@ -62,8 +61,17 @@ export default function CertificateScreen() {
 
             <View style={styles.qrWrap}>
               <View style={styles.qrInner}>
-                <QRCode value={payload} size={168} backgroundColor="#ffffff" color="#000000" />
+                <QRCode
+                  value={verifyUrl}
+                  size={196}
+                  backgroundColor="#ffffff"
+                  color="#0D2236"
+                  ecl="M"
+                />
               </View>
+              <ThemedText type="small" themeColor="textSecondary" style={styles.center}>
+                {verifyUrl.replace(/^https?:\/\//, '')}
+              </ThemedText>
             </View>
 
             <View style={styles.metaRow}>
@@ -92,7 +100,9 @@ const styles = StyleSheet.create({
   cert: { gap: Spacing.three },
   headerRow: { flexDirection: 'row', alignItems: 'flex-start', gap: Spacing.three },
   flex: { flex: 1 },
-  qrWrap: { alignItems: 'center' },
+  eyebrow: { fontSize: 11, letterSpacing: 1.5 },
+  zoneName: { fontSize: 22, fontWeight: '700' },
+  qrWrap: { alignItems: 'center', gap: Spacing.two },
   qrInner: { padding: Spacing.three, backgroundColor: '#ffffff', borderRadius: Spacing.two },
   metaRow: { flexDirection: 'row', gap: Spacing.three },
   empty: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: Spacing.two },

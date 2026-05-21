@@ -11,20 +11,56 @@ import { Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { supabase } from '@/lib/supabase';
 
+type Mode = 'password' | 'otp';
 type Channel = 'email' | 'phone';
 
 export default function SignInScreen() {
   const theme = useTheme();
   const router = useRouter();
+
+  const [mode, setMode] = useState<Mode>('password');
   const [channel, setChannel] = useState<Channel>('email');
-  const [value, setValue] = useState('');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [phone, setPhone] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  function switchMode(next: Mode) {
+    setMode(next);
+    setError(null);
+  }
+
+  async function signInWithPassword() {
+    setError(null);
+    const trimmedEmail = email.trim();
+    if (!trimmedEmail) {
+      setError('Enter your email address.');
+      return;
+    }
+    if (!password) {
+      setError('Enter your password.');
+      return;
+    }
+
+    setLoading(true);
+    const { error: signInError } = await supabase.auth.signInWithPassword({
+      email: trimmedEmail,
+      password,
+    });
+    setLoading(false);
+
+    if (signInError) {
+      setError(signInError.message);
+      return;
+    }
+    // The auth listener flips the session; the root navigator swaps to (app).
+  }
+
   async function sendCode() {
     setError(null);
-    const trimmed = value.trim();
-    if (!trimmed) {
+    const value = (channel === 'email' ? email : phone).trim();
+    if (!value) {
       setError(channel === 'email' ? 'Enter your email address.' : 'Enter your phone number.');
       return;
     }
@@ -32,16 +68,15 @@ export default function SignInScreen() {
     setLoading(true);
     const { error: otpError } =
       channel === 'email'
-        ? await supabase.auth.signInWithOtp({ email: trimmed })
-        : await supabase.auth.signInWithOtp({ phone: trimmed });
+        ? await supabase.auth.signInWithOtp({ email: value })
+        : await supabase.auth.signInWithOtp({ phone: value });
     setLoading(false);
 
     if (otpError) {
       setError(otpError.message);
       return;
     }
-
-    router.push({ pathname: '/verify', params: { channel, value: trimmed } });
+    router.push({ pathname: '/verify', params: { channel, value } });
   }
 
   return (
@@ -53,61 +88,98 @@ export default function SignInScreen() {
         </ThemedText>
       </View>
 
-      <View style={[styles.toggle, { backgroundColor: theme.backgroundElement }]}>
-        {(['email', 'phone'] as const).map((c) => {
-          const active = channel === c;
-          return (
-            <Pressable
-              key={c}
-              onPress={() => {
-                setChannel(c);
-                setValue('');
-                setError(null);
-              }}
-              style={[
-                styles.toggleItem,
-                active && { backgroundColor: theme.background },
-              ]}>
-              <ThemedText
-                type="smallBold"
-                themeColor={active ? 'text' : 'textSecondary'}
-                style={styles.toggleLabel}>
-                {c === 'email' ? 'Email' : 'Phone'}
-              </ThemedText>
-            </Pressable>
-          );
-        })}
-      </View>
-
-      {channel === 'email' ? (
-        <TextField
-          label="Email address"
-          placeholder="you@example.com"
-          autoCapitalize="none"
-          autoComplete="email"
-          keyboardType="email-address"
-          value={value}
-          onChangeText={setValue}
-          error={error}
-        />
+      {mode === 'password' ? (
+        <>
+          <TextField
+            label="Email address"
+            placeholder="you@example.com"
+            autoCapitalize="none"
+            autoComplete="email"
+            keyboardType="email-address"
+            value={email}
+            onChangeText={setEmail}
+          />
+          <TextField
+            label="Password"
+            placeholder="••••••••"
+            autoCapitalize="none"
+            autoComplete="current-password"
+            secureTextEntry
+            value={password}
+            onChangeText={setPassword}
+            error={error}
+          />
+          <Button title="Sign in" loading={loading} onPress={signInWithPassword} />
+          <Pressable onPress={() => switchMode('otp')}>
+            <ThemedText type="small" themeColor="textSecondary" style={styles.altLink}>
+              Sign in with email code instead
+            </ThemedText>
+          </Pressable>
+        </>
       ) : (
-        <TextField
-          label="Phone number"
-          placeholder="+27 82 000 0000"
-          autoComplete="tel"
-          keyboardType="phone-pad"
-          value={value}
-          onChangeText={setValue}
-          error={error}
-          hint="Use international format, e.g. +27821234567"
-        />
+        <>
+          <View style={[styles.toggle, { backgroundColor: theme.backgroundElement }]}>
+            {(['email', 'phone'] as const).map((c) => {
+              const active = channel === c;
+              return (
+                <Pressable
+                  key={c}
+                  onPress={() => {
+                    setChannel(c);
+                    setError(null);
+                  }}
+                  style={[
+                    styles.toggleItem,
+                    active && { backgroundColor: theme.background },
+                  ]}>
+                  <ThemedText
+                    type="smallBold"
+                    themeColor={active ? 'text' : 'textSecondary'}
+                    style={styles.toggleLabel}>
+                    {c === 'email' ? 'Email' : 'Phone'}
+                  </ThemedText>
+                </Pressable>
+              );
+            })}
+          </View>
+
+          {channel === 'email' ? (
+            <TextField
+              label="Email address"
+              placeholder="you@example.com"
+              autoCapitalize="none"
+              autoComplete="email"
+              keyboardType="email-address"
+              value={email}
+              onChangeText={setEmail}
+              error={error}
+            />
+          ) : (
+            <TextField
+              label="Phone number"
+              placeholder="+27 82 000 0000"
+              autoComplete="tel"
+              keyboardType="phone-pad"
+              value={phone}
+              onChangeText={setPhone}
+              error={error}
+              hint="Use international format, e.g. +27821234567"
+            />
+          )}
+
+          <Button title="Send verification code" loading={loading} onPress={sendCode} />
+          <Pressable onPress={() => switchMode('password')}>
+            <ThemedText type="small" themeColor="textSecondary" style={styles.altLink}>
+              Use password instead
+            </ThemedText>
+          </Pressable>
+        </>
       )}
 
-      <Button title="Send verification code" loading={loading} onPress={sendCode} />
-
       <ThemedText type="small" themeColor="textSecondary" style={styles.legal}>
-        We&apos;ll send a one-time code to verify it&apos;s you. New here? An account is created
-        automatically.
+        {mode === 'password'
+          ? "Don't have an account yet? Use the email code option above to sign up."
+          : "We'll send a one-time code to verify it's you. New here? An account is created automatically."}
       </ThemedText>
     </Screen>
   );
@@ -117,11 +189,12 @@ const styles = StyleSheet.create({
   content: {
     flexGrow: 1,
     justifyContent: 'center',
-    gap: Spacing.four,
+    gap: Spacing.three,
   },
   header: {
     gap: Spacing.one,
     alignItems: 'center',
+    marginBottom: Spacing.two,
   },
   toggle: {
     flexDirection: 'row',
@@ -136,6 +209,10 @@ const styles = StyleSheet.create({
   },
   toggleLabel: {
     textAlign: 'center',
+  },
+  altLink: {
+    textAlign: 'center',
+    textDecorationLine: 'underline',
   },
   legal: {
     textAlign: 'center',

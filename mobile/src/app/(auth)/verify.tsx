@@ -1,4 +1,4 @@
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { Redirect, useLocalSearchParams, useRouter } from 'expo-router';
 import { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 
@@ -14,6 +14,12 @@ export default function VerifyScreen() {
   const params = useLocalSearchParams<{ channel: string; value: string }>();
   const channel = params.channel === 'phone' ? 'phone' : 'email';
   const value = params.value ?? '';
+
+  // Reached here without first requesting a code — send the user back to
+  // sign-in so they don't sit on a dead "enter code" screen.
+  if (!value) {
+    return <Redirect href="/sign-in" />;
+  }
 
   const [code, setCode] = useState('');
   const [loading, setLoading] = useState(false);

@@ -1,6 +1,13 @@
 "use client";
 
-import { ClipboardList, LayoutDashboard, Map, Users, Wallet } from "lucide-react";
+import {
+  BarChart3,
+  ClipboardList,
+  LayoutDashboard,
+  Map,
+  Users,
+  Wallet,
+} from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
@@ -14,6 +21,7 @@ const NAV = [
   { href: "/admin/drivers", label: "Drivers", icon: Users },
   { href: "/admin/subscriptions", label: "Subscriptions", icon: Wallet },
   { href: "/admin/zones", label: "Zones", icon: Map },
+  { href: "/admin/reports", label: "Reports", icon: BarChart3 },
 ];
 
 export function Sidebar({ email }: { email: string | null }) {
