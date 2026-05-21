@@ -21,7 +21,10 @@
       "Bash(npx --yes create-next-app@latest admin --ts --app --tailwind --eslint --src-dir --import-alias \"@/*\" --use-npm --yes)",
       "Bash(node -e \"const p=require\\('./package.json'\\);for\\(const k of ['next','react','react-dom','tailwindcss','typescript','eslint']\\){console.log\\(k,\\(p.dependencies&&p.dependencies[k]\\)||\\(p.devDependencies&&p.devDependencies[k]\\)\\)}\")",
       "Bash(npm install *)",
-      "Bash(npx tsc *)"
+      "Bash(npx tsc *)",
+      "Bash(node -e \"const p=require\\('./mobile/package.json'\\);console.log\\(Object.keys\\(p.dependencies\\).filter\\(d=>/notif|expo-|task|background/.test\\(d\\)\\).join\\('\\\\n'\\)\\)\")",
+      "Bash(ls admin/src/app/admin/reports)",
+      "Bash(node -e \"console.log\\('ver', require\\('./node_modules/expo-notifications/package.json'\\).version\\)\")"
     ]
   }
 }
