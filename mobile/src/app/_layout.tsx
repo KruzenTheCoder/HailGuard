@@ -4,7 +4,9 @@ import { StatusBar } from 'expo-status-bar';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { useColorScheme } from 'react-native';
 
+import { SetupRequiredScreen } from '@/components/setup-required';
 import { LoadingScreen } from '@/components/ui/loading';
+import { env } from '@/lib/env';
 import { AuthProvider, useAuth } from '@/providers/auth-provider';
 import { QueryProvider } from '@/providers/query-provider';
 
@@ -33,6 +35,17 @@ function RootNavigator() {
 
 export default function RootLayout() {
   const colorScheme = useColorScheme();
+
+  if (!env.configured) {
+    return (
+      <GestureHandlerRootView style={{ flex: 1 }}>
+        <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+          <SetupRequiredScreen />
+          <StatusBar style="auto" />
+        </ThemeProvider>
+      </GestureHandlerRootView>
+    );
+  }
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>

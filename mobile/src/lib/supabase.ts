@@ -5,11 +5,18 @@ import { createClient } from '@supabase/supabase-js';
 
 import { env } from './env';
 
-export const supabase = createClient(env.supabaseUrl, env.supabaseAnonKey, {
+// When env vars are missing we still construct a client with placeholder
+// values so module evaluation succeeds. The root layout gates the app behind
+// `env.configured` and shows a setup screen, so this placeholder client is
+// never actually called.
+const url = env.configured ? env.supabaseUrl : 'https://placeholder.supabase.co';
+const key = env.configured ? env.supabaseAnonKey : 'placeholder-anon-key';
+
+export const supabase = createClient(url, key, {
   auth: {
     storage: AsyncStorage,
-    autoRefreshToken: true,
-    persistSession: true,
+    autoRefreshToken: env.configured,
+    persistSession: env.configured,
     // No URL-based session detection in a native app.
     detectSessionInUrl: false,
   },
