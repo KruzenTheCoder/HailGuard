@@ -26,8 +26,11 @@ export default function ProfileEditScreen() {
 
   const [idNumber, setIdNumber] = useState('');
   const [licenseNumber, setLicenseNumber] = useState('');
+  const [prdpNumber, setPrdpNumber] = useState('');
+  const [prdpExpiry, setPrdpExpiry] = useState('');
   const [pickedId, setPickedId] = useState<PickedDocument | null>(null);
   const [pickedLicense, setPickedLicense] = useState<PickedDocument | null>(null);
+  const [pickedPrdp, setPickedPrdp] = useState<PickedDocument | null>(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -35,8 +38,12 @@ export default function ProfileEditScreen() {
     if (profile) {
       setIdNumber(profile.idNumber ?? '');
       setLicenseNumber(profile.licenseNumber ?? '');
+      setPrdpNumber(profile.prdpNumber ?? '');
+      setPrdpExpiry(profile.prdpExpiresAt ?? '');
     }
   }, [profile]);
+
+  const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 
   async function save() {
     setError(null);
@@ -48,11 +55,16 @@ export default function ProfileEditScreen() {
       setError('Enter both your ID number and licence number.');
       return;
     }
+    if (prdpExpiry.trim() && !DATE_RE.test(prdpExpiry.trim())) {
+      setError('PrDP expiry must be in YYYY-MM-DD format.');
+      return;
+    }
 
     setSaving(true);
     try {
       let idPath = profile?.idDocumentPath ?? null;
       let licensePath = profile?.licenseDocumentPath ?? null;
+      let prdpPath = profile?.prdpDocumentPath ?? null;
 
       if (pickedId) {
         idPath = await uploadDocument(
@@ -68,12 +80,22 @@ export default function ProfileEditScreen() {
           pickedLicense
         );
       }
+      if (pickedPrdp) {
+        prdpPath = await uploadDocument(
+          BUCKETS.driver,
+          `${user.id}/prdp.${pickedPrdp.ext}`,
+          pickedPrdp
+        );
+      }
 
       await upsert.mutateAsync({
         idNumber: idNumber.trim(),
         licenseNumber: licenseNumber.trim(),
         idDocumentPath: idPath,
         licenseDocumentPath: licensePath,
+        prdpNumber: prdpNumber.trim() || null,
+        prdpExpiresAt: prdpExpiry.trim() || null,
+        prdpDocumentPath: prdpPath,
       });
 
       Alert.alert('Saved', 'Your profile has been submitted for review.');
@@ -136,6 +158,27 @@ export default function ProfileEditScreen() {
         existingPath={profile?.licenseDocumentPath}
         picked={pickedLicense}
         onChange={setPickedLicense}
+      />
+
+      <TextField
+        label="PrDP number (Professional Driving Permit)"
+        placeholder="PrDP number"
+        autoCapitalize="characters"
+        value={prdpNumber}
+        onChangeText={setPrdpNumber}
+      />
+      <TextField
+        label="PrDP expiry"
+        placeholder="YYYY-MM-DD"
+        value={prdpExpiry}
+        onChangeText={setPrdpExpiry}
+        hint="We'll remind you before it lapses."
+      />
+      <DocumentField
+        label="PrDP document"
+        existingPath={profile?.prdpDocumentPath}
+        picked={pickedPrdp}
+        onChange={setPickedPrdp}
       />
 
       <Pressable

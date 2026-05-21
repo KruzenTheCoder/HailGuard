@@ -6,6 +6,7 @@ import { notFound } from "next/navigation";
 import { DocumentThumb } from "@/components/document-thumb";
 import { PageHeader } from "@/components/page-header";
 import { ReviewActions } from "@/components/review-actions";
+import { RevokeComplianceButton } from "@/components/revoke-compliance-button";
 import { StatusBadge } from "@/components/status-badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { BUCKETS, signedUrl } from "@/lib/documents";
@@ -55,6 +56,7 @@ export default async function DriverDetailPage({ params }: { params: Promise<{ i
     <>
       <PageHeader title={driverName} description={user?.email ?? user?.phone_number ?? undefined}>
         <StatusBadge status={profile.status} />
+        <RevokeComplianceButton driverId={profile.id} />
       </PageHeader>
 
       <div className="flex flex-col gap-6 p-8">

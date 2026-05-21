@@ -225,7 +225,6 @@ begin
       plan_type,
       status,
       amount,
-      currency,
       start_date,
       end_date
     )
@@ -235,7 +234,6 @@ begin
       'monthly',
       'active',
       450.00,
-      'ZAR',
       v_start,
       v_end
     )
@@ -245,7 +243,6 @@ begin
        set plan_type  = 'monthly',
            status     = 'active',
            amount     = 450.00,
-           currency   = 'ZAR',
            start_date = v_start,
            end_date   = v_end
      where id = v_sub_id;
@@ -257,10 +254,9 @@ begin
     provider,
     provider_reference,
     amount,
-    currency,
     status
   )
-  select v_sub_id, 'stub', 'DEMO-' || v_sub_id::text, 450.00, 'ZAR', 'succeeded'
+  select v_sub_id, 'stub', 'DEMO-' || v_sub_id::text, 450.00, 'succeeded'
   where not exists (
     select 1 from public.payments
      where subscription_id = v_sub_id and status = 'succeeded'

@@ -67,6 +67,10 @@ export interface DriverProfile {
   licenseNumber: string | null;
   idDocumentPath: string | null;
   licenseDocumentPath: string | null;
+  /** Professional Driving Permit. */
+  prdpNumber: string | null;
+  prdpDocumentPath: string | null;
+  prdpExpiresAt: string | null;
   platformVerifications: PlatformVerifications;
   status: ReviewStatus;
   reviewNote: string | null;
@@ -127,4 +131,68 @@ export interface Payment {
   status: PaymentStatus;
   createdAt: string;
   updatedAt: string;
+}
+
+// --- Phase 7: reporting & regulatory compliance ---
+
+export type IncidentType =
+  | "sos_triggered"
+  | "passenger_dispute"
+  | "accident"
+  | "compliance_violation";
+
+export type IncidentStatus = "open" | "under_investigation" | "resolved";
+
+export interface ComplianceLog {
+  id: string;
+  driverId: string | null;
+  vehicleId: string | null;
+  actionType: string;
+  /** User id of the admin who acted, or null for system actions. */
+  performedBy: string | null;
+  notes: string | null;
+  createdAt: string;
+}
+
+export interface Incident {
+  id: string;
+  driverId: string;
+  vehicleId: string | null;
+  incidentType: IncidentType;
+  status: IncidentStatus;
+  notes: string | null;
+  resolutionNotes: string | null;
+  resolvedBy: string | null;
+  resolvedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface DriverShift {
+  id: string;
+  driverId: string;
+  startTime: string;
+  endTime: string | null;
+  totalHours: number | null;
+  createdAt: string;
+}
+
+/** Legally-mandated maximum continuous working hours before a rest period. */
+export const MAX_SHIFT_HOURS = 12;
+
+/** Traffic-light status for a compliance document's expiry. */
+export type ExpiryStatus = "valid" | "expiring" | "expired" | "missing";
+
+/** Map a date (or null) to a traffic-light status. expiring ≤ 30 days out. */
+export function expiryStatus(
+  date: string | null | undefined,
+  warnWithinDays = 30
+): { status: ExpiryStatus; daysLeft: number | null } {
+  if (!date) return { status: "missing", daysLeft: null };
+  const ms = Date.parse(date);
+  if (Number.isNaN(ms)) return { status: "missing", daysLeft: null };
+  const daysLeft = Math.ceil((ms - Date.now()) / 86_400_000);
+  if (daysLeft < 0) return { status: "expired", daysLeft };
+  if (daysLeft <= warnWithinDays) return { status: "expiring", daysLeft };
+  return { status: "valid", daysLeft };
 }

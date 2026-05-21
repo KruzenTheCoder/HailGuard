@@ -14,6 +14,9 @@ export type DriverProfileRow = {
   license_number: string | null;
   id_document_path: string | null;
   license_document_path: string | null;
+  prdp_number: string | null;
+  prdp_document_path: string | null;
+  prdp_expires_at: string | null;
   platform_verifications: PlatformVerifications | null;
   status: ReviewStatus;
   review_note: string | null;
@@ -45,6 +48,9 @@ export function mapDriverProfile(row: DriverProfileRow): DriverProfile {
     licenseNumber: row.license_number,
     idDocumentPath: row.id_document_path,
     licenseDocumentPath: row.license_document_path,
+    prdpNumber: row.prdp_number,
+    prdpDocumentPath: row.prdp_document_path,
+    prdpExpiresAt: row.prdp_expires_at,
     platformVerifications: row.platform_verifications ?? {},
     status: row.status,
     reviewNote: row.review_note,

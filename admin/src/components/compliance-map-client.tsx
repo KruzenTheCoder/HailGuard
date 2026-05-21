@@ -18,6 +18,18 @@ import type { ZoneFleetSummary } from "@/lib/queries";
 const BRAND_NAVY = "#0D2236";
 const BRAND_GREEN = "#16BE66";
 
+// Tile provider is configurable so production can swap off the public OSM
+// servers (whose usage policy disallows heavy commercial traffic) onto a paid
+// provider — MapTiler / Mapbox / Stadia — without a code change. Set
+// NEXT_PUBLIC_MAP_TILE_URL (+ _ATTRIBUTION) in the env. Defaults to OSM, which
+// is fine for dev and low-traffic admin use.
+const TILE_URL =
+  process.env.NEXT_PUBLIC_MAP_TILE_URL ??
+  "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png";
+const TILE_ATTRIBUTION =
+  process.env.NEXT_PUBLIC_MAP_TILE_ATTRIBUTION ??
+  '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors';
+
 function polygonCentroid(points: LatLngTuple[]): LatLngTuple | null {
   if (points.length === 0) return null;
   // Strip duplicate closing point if present.
@@ -124,10 +136,7 @@ export default function ComplianceMapClient({ zones }: Props) {
         style={{ height: "100%", width: "100%" }}
         attributionControl
       >
-        <TileLayer
-          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-        />
+        <TileLayer url={TILE_URL} attribution={TILE_ATTRIBUTION} />
 
         {projected.map(({ zone, ring }) => {
           const activityFraction = zone.activeVehicleCount / maxActivity;

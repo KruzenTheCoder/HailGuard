@@ -10,6 +10,7 @@ import { subscriptionKeys, useSubscriptions } from '@/api/subscriptions';
 import { useVehicles, vehicleKeys } from '@/api/vehicles';
 import { HomeHero } from '@/components/home-hero';
 import { PassStatusCard } from '@/components/pass-status-card';
+import { SosButton } from '@/components/sos-button';
 import { StatusTile, type StatusTileTone } from '@/components/status-tile';
 import { ThemedText } from '@/components/themed-text';
 import { Button } from '@/components/ui/button';
@@ -140,6 +141,7 @@ export default function ComplianceHomeScreen() {
         : 'danger';
 
   const passReady = summary.subscriptions.activeCount > 0;
+  const activeVehicleId = vehiclesQ.data?.find((v) => v.status === 'active')?.id ?? null;
 
   return (
     <View style={[styles.root, { backgroundColor: NAVY }]}>
@@ -214,8 +216,27 @@ export default function ComplianceHomeScreen() {
                 onPress={() => router.push('/zones')}
               />
             </View>
+            <View style={styles.gridRow}>
+              <StatusTile
+                icon="document-text-outline"
+                label="Documents"
+                value="Expiry"
+                hint="PrDP · roadworthy · pass"
+                tone="success"
+                onPress={() => router.push('/expiry')}
+              />
+              <StatusTile
+                icon="stopwatch-outline"
+                label="Shifts"
+                value="Logbook"
+                hint="Fatigue compliance"
+                tone="success"
+                onPress={() => router.push('/shifts')}
+              />
+            </View>
 
             <View style={styles.ctas}>
+              <SosButton vehicleId={activeVehicleId} />
               <Button
                 title="Scan Digital Pass"
                 onPress={() => router.push('/certificate')}

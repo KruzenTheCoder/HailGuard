@@ -4,7 +4,9 @@ import {
   BarChart3,
   ClipboardList,
   LayoutDashboard,
+  LineChart,
   Map,
+  Siren,
   Users,
   Wallet,
 } from "lucide-react";
@@ -17,8 +19,10 @@ import { cn } from "@/lib/utils";
 
 const NAV = [
   { href: "/admin", label: "Dashboard", icon: LayoutDashboard, exact: true },
+  { href: "/admin/analytics", label: "Analytics", icon: LineChart },
   { href: "/admin/applications", label: "Applications", icon: ClipboardList },
   { href: "/admin/drivers", label: "Drivers", icon: Users },
+  { href: "/admin/incidents", label: "Incidents", icon: Siren },
   { href: "/admin/subscriptions", label: "Subscriptions", icon: Wallet },
   { href: "/admin/zones", label: "Zones", icon: Map },
   { href: "/admin/reports", label: "Reports", icon: BarChart3 },

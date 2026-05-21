@@ -27,6 +27,9 @@ export type UpsertProfileInput = {
   licenseNumber?: string | null;
   idDocumentPath?: string | null;
   licenseDocumentPath?: string | null;
+  prdpNumber?: string | null;
+  prdpExpiresAt?: string | null;
+  prdpDocumentPath?: string | null;
   platformVerifications?: PlatformVerifications;
 };
 
@@ -45,6 +48,10 @@ export function useUpsertProfile() {
       if (input.idDocumentPath !== undefined) payload.id_document_path = input.idDocumentPath;
       if (input.licenseDocumentPath !== undefined)
         payload.license_document_path = input.licenseDocumentPath;
+      if (input.prdpNumber !== undefined) payload.prdp_number = input.prdpNumber;
+      if (input.prdpExpiresAt !== undefined) payload.prdp_expires_at = input.prdpExpiresAt;
+      if (input.prdpDocumentPath !== undefined)
+        payload.prdp_document_path = input.prdpDocumentPath;
       if (input.platformVerifications !== undefined)
         payload.platform_verifications = input.platformVerifications;
 

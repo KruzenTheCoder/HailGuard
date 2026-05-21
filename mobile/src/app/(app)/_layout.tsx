@@ -21,6 +21,8 @@ export default function AppStackLayout() {
       <Stack.Screen name="vehicle/[id]" options={{ title: 'Vehicle' }} />
       <Stack.Screen name="subscribe/[zoneId]" options={{ title: 'Subscribe' }} />
       <Stack.Screen name="certificate" options={{ title: 'Compliance certificate' }} />
+      <Stack.Screen name="expiry" options={{ title: 'Document expiry' }} />
+      <Stack.Screen name="shifts" options={{ title: 'Shift logbook' }} />
     </Stack>
   );
 }

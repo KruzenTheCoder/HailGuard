@@ -16,7 +16,7 @@ async function assertAdmin() {
 async function writeAudit(
   actorId: string,
   action: string,
-  entityType: "driver_profile" | "vehicle" | "subscription" | "zone",
+  entityType: "driver_profile" | "vehicle" | "subscription" | "zone" | "incident",
   entityId: string | null,
   detail: Record<string, unknown>
 ) {
@@ -160,4 +160,49 @@ export async function setZoneActive(zoneId: string, isActive: boolean) {
 
   await writeAudit(admin.id, "zone.set_active", "zone", zoneId, { isActive });
   revalidateAdmin();
+}
+
+// ---------------------------------------------------------------------------
+// Phase 7 — incidents, suspension engine, revoke compliance
+// ---------------------------------------------------------------------------
+export async function setIncidentStatus(
+  incidentId: string,
+  status: "open" | "under_investigation" | "resolved",
+  resolutionNotes?: string
+) {
+  const admin = await assertAdmin();
+  const supabase = await createClient();
+  const patch: Record<string, unknown> = { status };
+  if (status === "resolved") {
+    patch.resolved_by = admin.id;
+    patch.resolved_at = new Date().toISOString();
+    if (resolutionNotes !== undefined) patch.resolution_notes = resolutionNotes.trim() || null;
+  } else if (resolutionNotes !== undefined) {
+    patch.resolution_notes = resolutionNotes.trim() || null;
+  }
+  const { error } = await supabase.from("incidents").update(patch).eq("id", incidentId);
+  if (error) throw new Error(error.message);
+
+  await writeAudit(admin.id, `incident.${status}`, "incident", incidentId, {});
+  revalidateAdmin();
+}
+
+/** Auto-suspend expired roadworthy + expire lapsed subscriptions. */
+export async function runComplianceSweep() {
+  await assertAdmin();
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("run_compliance_sweep");
+  if (error) throw new Error(error.message);
+  revalidateAdmin();
+  return data as { vehiclesSuspended: number; subscriptionsExpired: number };
+}
+
+/** One-click: cancel active subscriptions + suspend active vehicles for a driver. */
+export async function revokeCompliance(driverId: string) {
+  await assertAdmin();
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("revoke_compliance", { p_driver_id: driverId });
+  if (error) throw new Error(error.message);
+  revalidateAdmin();
+  return data as { subscriptionsCancelled: number; vehiclesSuspended: number };
 }
