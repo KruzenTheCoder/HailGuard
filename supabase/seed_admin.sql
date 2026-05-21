@@ -91,10 +91,14 @@ begin
 
   -- The on_auth_user_created trigger inserts a public.users row with role='driver'.
   -- Promote to admin (and create the row defensively if the trigger was bypassed).
+  alter table public.users disable trigger users_guard_role;
+  
   insert into public.users (id, role, email)
        values (v_user_id, 'admin', v_email)
   on conflict (id) do update
        set role  = 'admin',
            email = excluded.email;
+           
+  alter table public.users enable trigger users_guard_role;
 end
 $$;

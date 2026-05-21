@@ -1,5 +1,6 @@
-import dynamic from "next/dynamic";
+"use client";
 
+import dynamic from "next/dynamic";
 import { MapPinOff } from "lucide-react";
 
 import type { ZoneFleetSummary } from "@/lib/queries";
@@ -22,7 +23,6 @@ export function ComplianceMap({ zones }: { zones: ZoneFleetSummary[] }) {
     (sum, z) => sum + z.activeVehicleCount,
     0,
   );
-
   return (
     <section className="overflow-hidden rounded-lg border border-border bg-card text-card-foreground shadow-sm">
       <header className="flex flex-col gap-3 border-b border-border p-4 sm:flex-row sm:items-center sm:justify-between">
