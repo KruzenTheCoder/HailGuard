@@ -20,7 +20,8 @@
       "Bash(xargs -I{} dirname {})",
       "Bash(npx --yes create-next-app@latest admin --ts --app --tailwind --eslint --src-dir --import-alias \"@/*\" --use-npm --yes)",
       "Bash(node -e \"const p=require\\('./package.json'\\);for\\(const k of ['next','react','react-dom','tailwindcss','typescript','eslint']\\){console.log\\(k,\\(p.dependencies&&p.dependencies[k]\\)||\\(p.devDependencies&&p.devDependencies[k]\\)\\)}\")",
-      "Bash(npm install *)"
+      "Bash(npm install *)",
+      "Bash(npx tsc *)"
     ]
   }
 }

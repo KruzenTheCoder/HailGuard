@@ -576,14 +576,14 @@ export async function getVerifyPass(
 ): Promise<VerifyPassResult | null> {
   if (!UUID_RE.test(subscriptionId)) return null;
   const supabase = await createClient();
-  const { data, error } = await supabase
-    .rpc("verify_pass", { p_subscription_id: subscriptionId })
-    .returns<VerifyPassResult | null>();
+  const { data, error } = await supabase.rpc("verify_pass", {
+    p_subscription_id: subscriptionId,
+  });
   if (error) {
     console.error("verify_pass RPC error", error);
     return null;
   }
-  return data ?? null;
+  return (data as VerifyPassResult | null) ?? null;
 }
 
 // ---------------------------------------------------------------------------

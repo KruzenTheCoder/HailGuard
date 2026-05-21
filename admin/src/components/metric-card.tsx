@@ -1,110 +1,107 @@
-import { ArrowDownRight, ArrowUpRight, Minus, type LucideIcon } from "lucide-react";
-
-import { Sparkline } from "@/components/sparkline";
+import { BarChart } from "@/components/bar-chart";
 import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 
-type Trend = {
-  /** Raw delta (positive = up). */
-  delta: number;
-  /** Display label for the delta — e.g. "+4 vs 7d ago" or "+12%". */
-  label: string;
-  /** Whether an upward delta is good (true) or bad (false). */
-  goodWhenUp?: boolean;
-};
+type Accent = "emerald-solid" | "emerald" | "navy" | "amber" | "rose";
 
 export type MetricCardProps = {
   label: string;
   value: string;
   hint?: string;
-  icon?: LucideIcon;
-  /** Accent color for icon bubble + sparkline. */
-  accent?: "emerald" | "sky" | "amber" | "violet";
+  accent?: Accent;
   series?: number[];
-  trend?: Trend;
 };
 
-const ACCENTS: Record<
-  NonNullable<MetricCardProps["accent"]>,
-  { stroke: string; bubble: string; icon: string }
+const PALETTES: Record<
+  Accent,
+  {
+    container: string;
+    label: string;
+    value: string;
+    hint: string;
+    bar: string;
+    barMuted: string;
+  }
 > = {
-  emerald: { stroke: "#16BE66", bubble: "bg-emerald-50", icon: "text-emerald-600" },
-  sky: { stroke: "#0EA5E9", bubble: "bg-sky-50", icon: "text-sky-600" },
-  amber: { stroke: "#F59E0B", bubble: "bg-amber-50", icon: "text-amber-600" },
-  violet: { stroke: "#8B5CF6", bubble: "bg-violet-50", icon: "text-violet-600" },
+  "emerald-solid": {
+    container: "bg-emerald-500 text-white border-emerald-600",
+    label: "text-white/80",
+    value: "text-white",
+    hint: "text-white/80",
+    bar: "rgba(255,255,255,0.92)",
+    barMuted: "rgba(255,255,255,0.45)",
+  },
+  emerald: {
+    container: "bg-card text-card-foreground",
+    label: "text-muted-foreground",
+    value: "text-foreground",
+    hint: "text-muted-foreground",
+    bar: "#16BE66",
+    barMuted: "rgba(22,190,102,0.32)",
+  },
+  navy: {
+    container: "bg-card text-card-foreground",
+    label: "text-muted-foreground",
+    value: "text-foreground",
+    hint: "text-muted-foreground",
+    bar: "#0D2236",
+    barMuted: "rgba(13,34,54,0.28)",
+  },
+  amber: {
+    container: "bg-card text-card-foreground",
+    label: "text-muted-foreground",
+    value: "text-foreground",
+    hint: "text-muted-foreground",
+    bar: "#F59E0B",
+    barMuted: "rgba(245,158,11,0.32)",
+  },
+  rose: {
+    container: "bg-card text-card-foreground",
+    label: "text-muted-foreground",
+    value: "text-foreground",
+    hint: "text-muted-foreground",
+    bar: "#E5484D",
+    barMuted: "rgba(229,72,77,0.32)",
+  },
 };
 
 export function MetricCard({
   label,
   value,
   hint,
-  icon: Icon,
   accent = "emerald",
   series,
-  trend,
 }: MetricCardProps) {
-  const palette = ACCENTS[accent];
-
-  const trendIsGood = trend
-    ? trend.delta === 0
-      ? null
-      : trend.goodWhenUp === false
-        ? trend.delta < 0
-        : trend.delta > 0
-    : null;
-  const TrendIcon =
-    trend === undefined || trend.delta === 0
-      ? Minus
-      : trend.delta > 0
-        ? ArrowUpRight
-        : ArrowDownRight;
+  const palette = PALETTES[accent];
 
   return (
-    <Card>
-      <CardContent className="flex flex-col gap-4 p-5">
-        <div className="flex items-start justify-between">
-          <div className="flex items-center gap-2">
-            {Icon ? (
-              <span
-                className={cn(
-                  "flex h-9 w-9 items-center justify-center rounded-lg",
-                  palette.bubble,
-                  palette.icon
-                )}
-              >
-                <Icon className="h-4 w-4" />
-              </span>
-            ) : null}
-            <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
-              {label}
-            </p>
-          </div>
-          {trend ? (
-            <span
-              className={cn(
-                "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium",
-                trendIsGood === null
-                  ? "bg-muted text-muted-foreground"
-                  : trendIsGood
-                    ? "bg-emerald-50 text-emerald-700"
-                    : "bg-red-50 text-red-700"
-              )}
-            >
-              <TrendIcon className="h-3 w-3" />
-              {trend.label}
-            </span>
-          ) : null}
+    <Card className={cn("overflow-hidden border", palette.container)}>
+      <CardContent className="flex flex-col gap-3 p-5">
+        <p
+          className={cn(
+            "text-[11px] font-semibold uppercase tracking-[0.14em]",
+            palette.label,
+          )}
+        >
+          {label}
+        </p>
+        <div className="flex items-baseline gap-2">
+          <p className={cn("text-3xl font-semibold tracking-tight", palette.value)}>
+            {value}
+          </p>
+          {hint ? <p className={cn("text-xs", palette.hint)}>{hint}</p> : null}
         </div>
-
-        <div className="flex items-end justify-between gap-3">
-          <div>
-            <p className="text-3xl font-semibold tracking-tight">{value}</p>
-            {hint ? <p className="mt-1 text-xs text-muted-foreground">{hint}</p> : null}
+        {series && series.length > 0 ? (
+          <div className="-mx-1 mt-1">
+            <BarChart
+              data={series}
+              color={palette.bar}
+              mutedColor={palette.barMuted}
+              height={56}
+              ariaLabel={`${label} trend`}
+            />
           </div>
-          {series && series.length > 0 ? (
-            <Sparkline data={series} color={palette.stroke} ariaLabel={`${label} trend`} />
-          ) : null}
-        </div>
+        ) : null}
       </CardContent>
     </Card>
   );

@@ -87,7 +87,7 @@ export function ActivityFeed({ rows }: { rows: ActivityRow[] }) {
     <section className="rounded-lg border border-border bg-card text-card-foreground shadow-sm">
       <header className="flex items-center justify-between border-b border-border p-4">
         <div>
-          <h2 className="text-base font-semibold tracking-tight">Recent activity</h2>
+          <h2 className="text-base font-semibold tracking-tight">Recent driver activity</h2>
           <p className="mt-1 text-xs text-muted-foreground">
             Latest admin actions across the fleet
           </p>
@@ -105,10 +105,10 @@ export function ActivityFeed({ rows }: { rows: ActivityRow[] }) {
             const Icon = m.icon;
             const tone = TONE_CLASS[m.tone];
             return (
-              <li key={row.id} className="flex items-start gap-3 p-4">
+              <li key={row.id} className="flex items-start gap-3 px-4 py-3">
                 <span
                   className={cn(
-                    "mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full",
+                    "flex h-9 w-9 shrink-0 items-center justify-center rounded-full",
                     tone.bubble,
                     tone.icon,
                   )}
@@ -116,14 +116,11 @@ export function ActivityFeed({ rows }: { rows: ActivityRow[] }) {
                   <Icon className="h-4 w-4" />
                 </span>
                 <div className="min-w-0 flex-1">
-                  <p className="text-sm font-medium leading-tight">{m.label}</p>
-                  <p className="mt-0.5 truncate text-xs text-muted-foreground">
-                    by {row.actorName}
+                  <p className="text-sm font-medium leading-snug">{m.label}</p>
+                  <p className="mt-0.5 text-xs text-muted-foreground">
+                    {formatRelative(row.createdAt)} · {row.actorName}
                   </p>
                 </div>
-                <time className="shrink-0 text-xs text-muted-foreground" dateTime={row.createdAt}>
-                  {formatRelative(row.createdAt)}
-                </time>
               </li>
             );
           })}
