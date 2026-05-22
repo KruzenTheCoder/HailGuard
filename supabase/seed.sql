@@ -79,3 +79,44 @@ on conflict (name) do update
        yearly_fee          = excluded.yearly_fee,
        polygon_coordinates = excluded.polygon_coordinates,
        is_active           = true;
+
+-- ---------------------------------------------------------------------------
+-- A few zones in other provinces so the dashboard's province grouping is
+-- meaningful out of the box.
+-- ---------------------------------------------------------------------------
+insert into public.zones (name, description, province, monthly_fee, yearly_fee, polygon_coordinates)
+values
+  (
+    'Cape Town CBD',
+    'City Bowl and Foreshore.',
+    'Western Cape', 600.00, 6000.00,
+    '[[18.405,-33.905],[18.430,-33.905],[18.435,-33.920],[18.428,-33.932],[18.412,-33.930],[18.402,-33.918],[18.405,-33.905]]'::jsonb
+  ),
+  (
+    'Sea Point',
+    'Atlantic seaboard — Sea Point and Green Point.',
+    'Western Cape', 550.00, 5500.00,
+    '[[18.378,-33.905],[18.398,-33.908],[18.405,-33.922],[18.392,-33.930],[18.378,-33.925],[18.372,-33.915],[18.378,-33.905]]'::jsonb
+  ),
+  (
+    'Durban Central',
+    'Durban CBD and beachfront.',
+    'KwaZulu-Natal', 450.00, 4500.00,
+    '[[31.005,-29.845],[31.030,-29.848],[31.040,-29.862],[31.032,-29.875],[31.012,-29.872],[31.002,-29.858],[31.005,-29.845]]'::jsonb
+  ),
+  (
+    'Umhlanga',
+    'Northern node — Umhlanga Ridge and Gateway.',
+    'KwaZulu-Natal', 550.00, 5500.00,
+    '[[31.075,-29.715],[31.095,-29.718],[31.102,-29.732],[31.092,-29.745],[31.075,-29.742],[31.068,-29.728],[31.075,-29.715]]'::jsonb
+  )
+on conflict (name) do update
+   set description         = excluded.description,
+       province            = excluded.province,
+       monthly_fee         = excluded.monthly_fee,
+       yearly_fee          = excluded.yearly_fee,
+       polygon_coordinates = excluded.polygon_coordinates,
+       is_active           = true;
+
+-- Backfill province for the Johannesburg metro zones inserted above.
+update public.zones set province = 'Gauteng' where province is null;

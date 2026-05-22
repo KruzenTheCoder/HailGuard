@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { toast } from "sonner";
 
 import {
   approveProfile,
@@ -21,15 +22,18 @@ export function ReviewActions({ kind, id, status }: { kind: Kind; id: string; st
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
-  function run(fn: () => Promise<void>) {
+  function run(fn: () => Promise<void>, successMsg: string) {
     setError(null);
     startTransition(async () => {
       try {
         await fn();
         setMode("idle");
         setNote("");
+        toast.success(successMsg);
       } catch (e) {
-        setError(e instanceof Error ? e.message : "Action failed.");
+        const msg = e instanceof Error ? e.message : "Action failed.";
+        setError(msg);
+        toast.error(msg);
       }
     });
   }
@@ -53,13 +57,16 @@ export function ReviewActions({ kind, id, status }: { kind: Kind; id: string; st
             size="sm"
             disabled={pending}
             onClick={() =>
-              run(async () => {
-                if (isReject) {
-                  await (kind === "profile" ? rejectProfile(id, note) : rejectVehicle(id, note));
-                } else {
-                  await suspendVehicle(id, note);
-                }
-              })
+              run(
+                async () => {
+                  if (isReject) {
+                    await (kind === "profile" ? rejectProfile(id, note) : rejectVehicle(id, note));
+                  } else {
+                    await suspendVehicle(id, note);
+                  }
+                },
+                isReject ? `${kind === "profile" ? "Profile" : "Vehicle"} rejected` : "Vehicle suspended"
+              )
             }
           >
             {pending ? "Saving…" : isReject ? "Confirm rejection" : "Confirm suspension"}
@@ -80,7 +87,10 @@ export function ReviewActions({ kind, id, status }: { kind: Kind; id: string; st
             size="sm"
             disabled={pending}
             onClick={() =>
-              run(kind === "profile" ? () => approveProfile(id) : () => approveVehicle(id))
+              run(
+                kind === "profile" ? () => approveProfile(id) : () => approveVehicle(id),
+                kind === "profile" ? "Profile approved" : "Vehicle approved & activated"
+              )
             }
           >
             {pending ? "Saving…" : kind === "profile" ? "Approve" : "Approve & activate"}

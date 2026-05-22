@@ -101,6 +101,7 @@ export interface Zone {
   id: string;
   name: string;
   description: string | null;
+  province: string | null;
   monthlyFee: number;
   yearlyFee: number;
   polygonCoordinates: PolygonCoordinates | null;

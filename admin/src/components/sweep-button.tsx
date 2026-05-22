@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { toast } from "sonner";
 
 import { runComplianceSweep } from "@/app/admin/actions";
 import { Button } from "@/components/ui/button";
@@ -18,11 +19,13 @@ export function SweepButton() {
           startTransition(async () => {
             try {
               const r = await runComplianceSweep();
-              setResult(
-                `${r.vehiclesSuspended} suspended · ${r.subscriptionsExpired} expired`
-              );
+              const summary = `${r.vehiclesSuspended} suspended · ${r.subscriptionsExpired} expired`;
+              setResult(summary);
+              toast.success("Compliance sweep complete", { description: summary });
             } catch (e) {
-              setResult(e instanceof Error ? e.message : "Sweep failed");
+              const msg = e instanceof Error ? e.message : "Sweep failed";
+              setResult(msg);
+              toast.error(msg);
             }
           })
         }

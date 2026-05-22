@@ -126,6 +126,7 @@ export async function cancelSubscription(subscriptionId: string) {
 export type CreateZoneInput = {
   name: string;
   description: string;
+  province: string;
   monthlyFee: number;
   yearlyFee: number;
 };
@@ -133,6 +134,7 @@ export type CreateZoneInput = {
 export async function createZone(input: CreateZoneInput) {
   const admin = await assertAdmin();
   if (!input.name.trim()) throw new Error("Zone name is required.");
+  if (!input.province.trim()) throw new Error("Province is required.");
   if (input.monthlyFee < 0 || input.yearlyFee < 0) throw new Error("Fees cannot be negative.");
 
   const supabase = await createClient();
@@ -141,6 +143,7 @@ export async function createZone(input: CreateZoneInput) {
     .insert({
       name: input.name.trim(),
       description: input.description.trim() || null,
+      province: input.province.trim(),
       monthly_fee: input.monthlyFee,
       yearly_fee: input.yearlyFee,
     })
@@ -159,6 +162,29 @@ export async function setZoneActive(zoneId: string, isActive: boolean) {
   if (error) throw new Error(error.message);
 
   await writeAudit(admin.id, "zone.set_active", "zone", zoneId, { isActive });
+  revalidateAdmin();
+}
+
+export async function deleteZone(zoneId: string) {
+  const admin = await assertAdmin();
+  const supabase = await createClient();
+
+  // A zone with subscriptions can't be hard-deleted (FK is ON DELETE RESTRICT);
+  // guide the admin to deactivate instead.
+  const { count } = await supabase
+    .from("subscriptions")
+    .select("*", { count: "exact", head: true })
+    .eq("zone_id", zoneId);
+  if ((count ?? 0) > 0) {
+    throw new Error(
+      `This zone has ${count} subscription(s) and can't be deleted. Deactivate it instead to stop new sign-ups.`
+    );
+  }
+
+  const { error } = await supabase.from("zones").delete().eq("id", zoneId);
+  if (error) throw new Error(error.message);
+
+  await writeAudit(admin.id, "zone.delete", "zone", zoneId, {});
   revalidateAdmin();
 }
 

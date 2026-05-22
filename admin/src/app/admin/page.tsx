@@ -6,6 +6,7 @@ import { ComplianceMap } from "@/components/compliance-map";
 import { DriverVehicleTable } from "@/components/driver-vehicle-table";
 import { MetricCard } from "@/components/metric-card";
 import { PageHeader } from "@/components/page-header";
+import { ZonesByProvince } from "@/components/zones-by-province";
 import { Button } from "@/components/ui/button";
 import {
   getDashboardMetrics,
@@ -73,7 +74,10 @@ export default async function DashboardPage() {
           />
         </div>
 
-        <ComplianceMap zones={zoneFleet} />
+        <div className="grid grid-cols-1 gap-6 xl:grid-cols-[2fr_1fr]">
+          <ComplianceMap zones={zoneFleet} />
+          <ZonesByProvince zones={zoneFleet} />
+        </div>
 
         <div className="grid grid-cols-1 gap-6 xl:grid-cols-[2fr_1fr]">
           <DriverVehicleTable rows={fleet} />

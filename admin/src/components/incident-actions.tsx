@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { toast } from "sonner";
 
 import { setIncidentStatus } from "@/app/admin/actions";
 import { Button } from "@/components/ui/button";
@@ -19,8 +20,11 @@ export function IncidentActions({ id, status }: { id: string; status: string }) 
         await fn();
         setResolving(false);
         setNotes("");
+        toast.success("Incident updated");
       } catch (e) {
-        setError(e instanceof Error ? e.message : "Action failed.");
+        const msg = e instanceof Error ? e.message : "Action failed.";
+        setError(msg);
+        toast.error(msg);
       }
     });
   }

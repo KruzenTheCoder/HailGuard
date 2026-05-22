@@ -531,27 +531,35 @@ export type ZoneListItem = {
   id: string;
   name: string;
   description: string | null;
+  province: string | null;
   monthlyFee: number;
   yearlyFee: number;
   polygon: [number, number][] | null;
   isActive: boolean;
+  /** Active subscriptions referencing this zone (blocks hard delete). */
+  activeSubscriptions: number;
 };
 
 type ZoneListRow = {
   id: string;
   name: string;
   description: string | null;
+  province: string | null;
   monthly_fee: number;
   yearly_fee: number;
   polygon_coordinates: [number, number][] | null;
   is_active: boolean;
+  subscriptions: { count: number }[];
 };
 
 export async function getZonesAdmin(): Promise<ZoneListItem[]> {
   const supabase = await createClient();
   const { data } = await supabase
     .from("zones")
-    .select("id, name, description, monthly_fee, yearly_fee, polygon_coordinates, is_active")
+    .select(
+      "id, name, description, province, monthly_fee, yearly_fee, polygon_coordinates, is_active, subscriptions(count)"
+    )
+    .order("province", { nullsFirst: false })
     .order("name")
     .returns<ZoneListRow[]>();
 
@@ -559,10 +567,12 @@ export async function getZonesAdmin(): Promise<ZoneListItem[]> {
     id: row.id,
     name: row.name,
     description: row.description,
+    province: row.province,
     monthlyFee: Number(row.monthly_fee),
     yearlyFee: Number(row.yearly_fee),
     polygon: row.polygon_coordinates,
     isActive: row.is_active,
+    activeSubscriptions: row.subscriptions?.[0]?.count ?? 0,
   }));
 }
 
@@ -632,6 +642,7 @@ export type ZoneFleetSummary = {
   id: string;
   name: string;
   description: string | null;
+  province: string | null;
   monthlyFee: number;
   yearlyFee: number;
   polygon: [number, number][] | null;
@@ -644,6 +655,7 @@ type ZoneFleetRow = {
   id: string;
   name: string;
   description: string | null;
+  province: string | null;
   monthly_fee: number;
   yearly_fee: number;
   polygon_coordinates: [number, number][] | null;
@@ -658,7 +670,7 @@ export async function getZoneFleetSummary(): Promise<ZoneFleetSummary[]> {
     supabase
       .from("zones")
       .select(
-        "id, name, description, monthly_fee, yearly_fee, polygon_coordinates, is_active",
+        "id, name, description, province, monthly_fee, yearly_fee, polygon_coordinates, is_active",
       )
       .eq("is_active", true)
       .order("name")
@@ -684,6 +696,7 @@ export async function getZoneFleetSummary(): Promise<ZoneFleetSummary[]> {
       id: z.id,
       name: z.name,
       description: z.description,
+      province: z.province,
       monthlyFee: Number(z.monthly_fee),
       yearlyFee: Number(z.yearly_fee),
       polygon: z.polygon_coordinates,

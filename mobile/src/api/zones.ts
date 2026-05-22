@@ -7,6 +7,7 @@ type ZoneRow = {
   id: string;
   name: string;
   description: string | null;
+  province: string | null;
   monthly_fee: number;
   yearly_fee: number;
   polygon_coordinates: Zone['polygonCoordinates'];
@@ -20,6 +21,7 @@ function mapZone(row: ZoneRow): Zone {
     id: row.id,
     name: row.name,
     description: row.description,
+    province: row.province,
     monthlyFee: Number(row.monthly_fee),
     yearlyFee: Number(row.yearly_fee),
     polygonCoordinates: row.polygon_coordinates,

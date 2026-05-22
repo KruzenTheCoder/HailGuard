@@ -36,8 +36,8 @@ export default function ReportsPage() {
         {REPORTS.map((report) => {
           const Icon = report.icon;
           return (
-            <Card key={report.type}>
-              <CardContent className="flex flex-col gap-4 p-6">
+            <Card key={report.type} className="flex h-full flex-col">
+              <CardContent className="flex h-full flex-col gap-4 p-6">
                 <span className="flex h-11 w-11 items-center justify-center rounded-lg bg-accent text-accent-foreground">
                   <Icon className="h-5 w-5" />
                 </span>

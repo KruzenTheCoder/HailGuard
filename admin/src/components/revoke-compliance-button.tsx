@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { toast } from "sonner";
 
 import { revokeCompliance } from "@/app/admin/actions";
 import { Button } from "@/components/ui/button";
@@ -31,11 +32,13 @@ export function RevokeComplianceButton({ driverId }: { driverId: string }) {
           startTransition(async () => {
             try {
               const r = await revokeCompliance(driverId);
-              setMsg(
-                `Revoked — ${r.subscriptionsCancelled} pass(es) cancelled, ${r.vehiclesSuspended} vehicle(s) suspended.`
-              );
+              const summary = `${r.subscriptionsCancelled} pass(es) cancelled, ${r.vehiclesSuspended} vehicle(s) suspended.`;
+              setMsg(`Revoked — ${summary}`);
+              toast.success("Compliance revoked", { description: summary });
             } catch (e) {
-              setMsg(e instanceof Error ? e.message : "Revoke failed");
+              const m = e instanceof Error ? e.message : "Revoke failed";
+              setMsg(m);
+              toast.error(m);
             }
           })
         }
