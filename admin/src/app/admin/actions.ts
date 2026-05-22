@@ -332,8 +332,8 @@ export async function createPortalUser(input: CreatePortalUserInput) {
 
 export async function setUserRole(userId: string, role: UserRole) {
   const me = await assertPermission("user:write");
-  if (userId === me.id && role !== "admin") {
-    throw new Error("You can't remove your own admin access.");
+  if (userId === me.id && !STAFF_ROLES.includes(role)) {
+    throw new Error("You can't remove your own portal access.");
   }
   const admin = createAdminClient();
   const { error } = await admin.from("users").update({ role }).eq("id", userId);

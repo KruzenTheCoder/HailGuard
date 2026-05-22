@@ -1,3 +1,5 @@
+import { STAFF_ROLES } from "@hailguard/shared";
+
 import { getCurrentUser } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 
@@ -22,7 +24,7 @@ function csvResponse(filename: string, csv: string) {
 
 export async function GET(_req: Request, { params }: { params: Promise<{ type: string }> }) {
   const user = await getCurrentUser();
-  if (!user || user.role !== "admin") {
+  if (!user || !STAFF_ROLES.includes(user.role)) {
     return new Response("Unauthorized", { status: 401 });
   }
 

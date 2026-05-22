@@ -1,3 +1,4 @@
+import { STAFF_ROLES } from "@hailguard/shared";
 import { ShieldAlert } from "lucide-react";
 import { redirect } from "next/navigation";
 
@@ -13,7 +14,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
     redirect("/login");
   }
 
-  if (user.role !== "admin") {
+  if (!STAFF_ROLES.includes(user.role)) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-muted/40 p-4">
         <Card className="w-full max-w-sm">

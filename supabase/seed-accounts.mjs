@@ -62,9 +62,15 @@ async function ensureUser({ email, fullName, phone, role }) {
     if (error) throw error;
     id = data.user.id;
   }
-  await sb
+  const { error: roleErr } = await sb
     .from("users")
     .upsert({ id, email, full_name: fullName, phone_number: phone ?? null, role }, { onConflict: "id" });
+  if (roleErr) {
+    throw new Error(
+      `Could not set role '${role}' for ${email}: ${roleErr.message}. ` +
+        `Apply migration 0014 first (it lets the service role assign roles).`
+    );
+  }
   return id;
 }
 
@@ -202,6 +208,17 @@ async function run() {
   ]) {
     staff[key] = await ensureUser({ email, fullName: name, role });
     creds.push([email, role]);
+  }
+
+  // Promote the operator's own account to super_admin if it exists.
+  const superEmail = process.env.SUPER_ADMIN_EMAIL || "Kruz143000@gmail.com";
+  const { data: promoted } = await sb
+    .from("users")
+    .update({ role: "super_admin" })
+    .ilike("email", superEmail)
+    .select("email");
+  if (promoted && promoted.length > 0) {
+    console.log(`Promoted ${promoted[0].email} to super_admin.`);
   }
 
   // Demo a capacity restriction: Johannesburg CBD caps at 4 passengers.
