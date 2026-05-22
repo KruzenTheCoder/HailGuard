@@ -51,7 +51,6 @@ export type VehicleDetail = {
     startDate: string | null;
     endDate: string | null;
     amount: number;
-    currency: string;
     createdAt: string;
   }[];
   incidents: {

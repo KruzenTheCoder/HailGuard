@@ -50,15 +50,34 @@ function daysUntil(value: string | null): number | null {
 }
 
 export default function VehicleDetailScreen() {
-  const theme = useTheme();
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { data: detail, isLoading } = useVehicleDetail(id);
+  const { data: detail, isLoading, isError, error, refetch } = useVehicleDetail(id);
 
   if (isLoading) return <LoadingScreen />;
+  if (isError) {
+    return (
+      <Screen>
+        <ThemedText type="smallBold" themeColor="danger">
+          Couldn&apos;t load vehicle details.
+        </ThemedText>
+        <ThemedText type="small" themeColor="textSecondary">
+          {error instanceof Error ? error.message : 'Unknown error.'}
+        </ThemedText>
+        <ThemedText type="small" themeColor="textSecondary">
+          Vehicle id: {id ?? '(missing)'}
+        </ThemedText>
+        <Button title="Retry" onPress={() => refetch()} />
+      </Screen>
+    );
+  }
   if (!detail) {
     return (
       <Screen>
-        <ThemedText type="default">Vehicle not found.</ThemedText>
+        <ThemedText type="smallBold">No data for this vehicle.</ThemedText>
+        <ThemedText type="small" themeColor="textSecondary">
+          The RPC returned null. Vehicle id: {id ?? '(missing)'}
+        </ThemedText>
+        <Button title="Retry" onPress={() => refetch()} />
       </Screen>
     );
   }
@@ -295,7 +314,7 @@ function VehicleDetailBody({ detail }: { detail: VehicleDetail }) {
                   {s.planType} · {formatDate(s.startDate)} → {formatDate(s.endDate)}
                 </ThemedText>
                 <ThemedText type="small" themeColor="textSecondary">
-                  {s.currency} {Number(s.amount).toFixed(2)}
+                  R {Number(s.amount).toFixed(2)}
                 </ThemedText>
               </View>
               <StatusPill label={s.status} color={toneFor(theme, s.status)} />

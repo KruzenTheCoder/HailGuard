@@ -27,7 +27,9 @@
       "Bash(node -e \"console.log\\('ver', require\\('./node_modules/expo-notifications/package.json'\\).version\\)\")",
       "Bash(npx --yes create-expo-app@latest mobile-inspector --template default)",
       "Bash(findstr notif *)",
-      "Bash(node --check supabase/seed-accounts.mjs)"
+      "Bash(node --check supabase/seed-accounts.mjs)",
+      "mcp__752d15a1-816f-46bc-bf11-2ec96f22ec24__apply_migration",
+      "mcp__752d15a1-816f-46bc-bf11-2ec96f22ec24__execute_sql"
     ]
   }
 }

@@ -59,7 +59,6 @@ begin
         'startDate', s.start_date,
         'endDate', s.end_date,
         'amount', s.amount,
-        'currency', s.currency,
         'createdAt', s.created_at
       ) order by s.created_at desc), '[]'::jsonb)
       from public.subscriptions s
