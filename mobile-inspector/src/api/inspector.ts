@@ -37,7 +37,7 @@ export type Dossier = {
   activeSubscriptions: DossierSubscription[];
 };
 
-export type LookupKind = 'subscription' | 'plate' | 'id';
+export type LookupKind = 'subscription' | 'plate' | 'id' | 'auto';
 
 export function useLookup() {
   return useMutation({
@@ -46,7 +46,11 @@ export function useLookup() {
         p_kind: kind,
         p_value: value,
       });
-      if (error) throw error;
+      // Supabase errors are plain objects (not Error instances); surface the
+      // real message/details so failures aren't masked as a generic alert.
+      if (error) {
+        throw new Error(error.message || error.details || error.hint || 'Lookup failed.');
+      }
       return (data as Dossier | null) ?? null;
     },
   });

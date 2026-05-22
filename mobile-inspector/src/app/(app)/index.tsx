@@ -2,7 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { useRouter } from 'expo-router';
 import { useRef, useState } from 'react';
-import { Alert, Pressable, StyleSheet, View } from 'react-native';
+import { Alert, StyleSheet, View } from 'react-native';
 
 import { useLookup, type LookupKind } from '@/api/inspector';
 import { ThemedText } from '@/components/themed-text';
@@ -31,7 +31,6 @@ export default function InspectHome() {
   const [permission, requestPermission] = useCameraPermissions();
   const handled = useRef(false);
 
-  const [manualKind, setManualKind] = useState<Exclude<LookupKind, 'subscription'>>('plate');
   const [manualValue, setManualValue] = useState('');
 
   async function runLookup(kind: LookupKind, value: string) {
@@ -112,31 +111,12 @@ export default function InspectHome() {
       <ThemedText type="smallBold" themeColor="textSecondary" style={styles.section}>
         NO QR? LOOK UP MANUALLY
       </ThemedText>
-      <View style={styles.toggle}>
-        {(['plate', 'id'] as const).map((k) => {
-          const active = manualKind === k;
-          return (
-            <Pressable
-              key={k}
-              onPress={() => setManualKind(k)}
-              style={[
-                styles.toggleItem,
-                {
-                  borderColor: active ? theme.primary : theme.border,
-                  backgroundColor: active ? theme.primary + '15' : theme.backgroundElement,
-                },
-              ]}>
-              <ThemedText type="small" themeColor={active ? 'text' : 'textSecondary'}>
-                {k === 'plate' ? 'Licence plate' : 'ID number'}
-              </ThemedText>
-            </Pressable>
-          );
-        })}
-      </View>
+      <ThemedText type="small" themeColor="textSecondary">
+        Search by licence plate, SA ID number, or pass reference — we check all three.
+      </ThemedText>
       <TextField
-        placeholder={manualKind === 'plate' ? 'e.g. CA 123 456' : 'SA ID number'}
+        placeholder="Plate, ID number or pass reference"
         autoCapitalize="characters"
-        keyboardType={manualKind === 'id' ? 'number-pad' : 'default'}
         value={manualValue}
         onChangeText={setManualValue}
       />
@@ -144,7 +124,7 @@ export default function InspectHome() {
         title="Look up"
         loading={lookup.isPending}
         disabled={!manualValue.trim()}
-        onPress={() => runLookup(manualKind, manualValue.trim())}
+        onPress={() => runLookup('auto', manualValue.trim())}
       />
 
       <Button title="Sign out" variant="outline" onPress={signOut} style={styles.signOut} />
