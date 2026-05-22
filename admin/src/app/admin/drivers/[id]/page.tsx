@@ -1,4 +1,4 @@
-import type { EHailingPlatform } from "@hailguard/shared";
+import { capacityQualification, type EHailingPlatform } from "@hailguard/shared";
 import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -155,6 +155,15 @@ export default async function DriverDetailPage({ params }: { params: Promise<{ i
                     <Field label="Capacity" value={vehicle.passengerCapacity != null ? `${vehicle.passengerCapacity} pax` : null} />
                     <Field label="Category" value={vehicle.vehicleCategory} />
                     <Field label="Roadworthy expiry" value={vehicle.roadworthyExpiresAt} />
+                  </div>
+                  <div className="rounded-md border border-border bg-muted/40 p-3 text-sm">
+                    <p className="font-medium">
+                      Compliance restriction · max{" "}
+                      {vehicle.passengerCapacity != null ? `${vehicle.passengerCapacity} passengers` : "— passengers"}
+                    </p>
+                    <p className="mt-0.5 text-muted-foreground">
+                      {capacityQualification(vehicle.passengerCapacity)}
+                    </p>
                   </div>
                   <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                     <DocumentThumb label="Registration" url={regUrl} />

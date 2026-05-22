@@ -26,7 +26,8 @@
       "Bash(ls admin/src/app/admin/reports)",
       "Bash(node -e \"console.log\\('ver', require\\('./node_modules/expo-notifications/package.json'\\).version\\)\")",
       "Bash(npx --yes create-expo-app@latest mobile-inspector --template default)",
-      "Bash(findstr notif *)"
+      "Bash(findstr notif *)",
+      "Bash(node --check supabase/seed-accounts.mjs)"
     ]
   }
 }

@@ -1,3 +1,4 @@
+import { capacityQualification } from '@hailguard/shared';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { Alert, StyleSheet, View } from 'react-native';
@@ -124,6 +125,29 @@ export default function VehicleDetailScreen() {
         ) : null}
       </Card>
 
+      <Card>
+        <ThemedText type="smallBold">Compliance restrictions</ThemedText>
+        <View style={styles.specRow}>
+          <View style={styles.flex}>
+            <ThemedText type="small" themeColor="textSecondary">
+              Max passengers
+            </ThemedText>
+            <ThemedText type="smallBold">
+              {vehicle.passengerCapacity != null ? vehicle.passengerCapacity : '—'}
+            </ThemedText>
+          </View>
+          <View style={styles.flex}>
+            <ThemedText type="small" themeColor="textSecondary">
+              Category
+            </ThemedText>
+            <ThemedText type="smallBold">{vehicle.vehicleCategory ?? '—'}</ThemedText>
+          </View>
+        </View>
+        <ThemedText type="small" themeColor="textSecondary">
+          {capacityQualification(vehicle.passengerCapacity)}
+        </ThemedText>
+      </Card>
+
       <TextField
         label="Roadworthy expiry"
         placeholder="YYYY-MM-DD"
@@ -165,4 +189,5 @@ export default function VehicleDetailScreen() {
 const styles = StyleSheet.create({
   headerRow: { flexDirection: 'row', alignItems: 'flex-start', gap: Spacing.three },
   flex: { flex: 1 },
+  specRow: { flexDirection: 'row', gap: Spacing.three },
 });

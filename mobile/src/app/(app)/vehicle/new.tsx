@@ -13,6 +13,7 @@ import { TextField } from '@/components/ui/text-field';
 import { Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { BUCKETS, uploadDocument, type PickedDocument } from '@/lib/storage';
+import { decodeVin } from '@/lib/vehicle-spec';
 import { useAuth } from '@/providers/auth-provider';
 
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
@@ -36,9 +37,33 @@ export default function NewVehicleScreen() {
   const [pickedReg, setPickedReg] = useState<PickedDocument | null>(null);
   const [pickedRoadworthy, setPickedRoadworthy] = useState<PickedDocument | null>(null);
   const [saving, setSaving] = useState(false);
+  const [decoding, setDecoding] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const capacityNum = capacity.trim() ? Number(capacity) : null;
+
+  async function autofillFromVin() {
+    if (vin.trim().length < 11) {
+      Alert.alert('Enter a VIN', 'Enter the full 17-character VIN for an accurate lookup.');
+      return;
+    }
+    setDecoding(true);
+    try {
+      const spec = await decodeVin(vin);
+      if (!spec || (!spec.make && !spec.model)) {
+        Alert.alert('No match', 'Could not decode that VIN — please enter the details manually.');
+        return;
+      }
+      if (spec.make) setMake(spec.make);
+      if (spec.model) setModel(spec.model);
+      if (spec.year) setYear(String(spec.year));
+      if (spec.passengerCapacity) setCapacity(String(spec.passengerCapacity));
+      if (spec.vehicleCategory) setCategory(spec.vehicleCategory);
+      Alert.alert('Specs loaded', 'Vehicle details were filled from the VIN. Please review before saving.');
+    } finally {
+      setDecoding(false);
+    }
+  }
 
   function validate(): string | null {
     if (!make.trim() || !model.trim() || !plate.trim()) {
@@ -141,6 +166,13 @@ export default function NewVehicleScreen() {
         autoCapitalize="characters"
         value={vin}
         onChangeText={setVin}
+        hint="Enter the VIN, then auto-fill specs from the vehicle database."
+      />
+      <Button
+        title="Auto-fill specs from VIN"
+        variant="secondary"
+        loading={decoding}
+        onPress={autofillFromVin}
       />
       <TextField
         label="Engine number"
