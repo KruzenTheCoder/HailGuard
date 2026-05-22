@@ -34,6 +34,8 @@ export type ComplianceSummary = {
     /** Next-to-expire active subscription (drives the headline). */
     primary: SubscriptionView | null;
     daysUntilExpiry: number | null;
+    /** All active subscriptions, soonest-to-expire first. */
+    active: SubscriptionView[];
   };
 };
 
@@ -67,15 +69,15 @@ export function summarise({
   const pending = vs.filter((v) => v.status === 'pending');
 
   const subs = subscriptions ?? [];
-  const activeSubs = subs.filter((s) => s.status === 'active');
-  const primary =
-    activeSubs
-      .slice()
-      .sort((a, b) => {
-        const ae = a.endDate ? Date.parse(a.endDate) : Infinity;
-        const be = b.endDate ? Date.parse(b.endDate) : Infinity;
-        return ae - be;
-      })[0] ?? null;
+  const activeSubs = subs
+    .filter((s) => s.status === 'active')
+    .slice()
+    .sort((a, b) => {
+      const ae = a.endDate ? Date.parse(a.endDate) : Infinity;
+      const be = b.endDate ? Date.parse(b.endDate) : Infinity;
+      return ae - be;
+    });
+  const primary = activeSubs[0] ?? null;
   const daysUntilExpiry = primary?.endDate
     ? Math.max(0, Math.ceil((Date.parse(primary.endDate) - Date.now()) / MS_PER_DAY))
     : null;
@@ -113,6 +115,7 @@ export function summarise({
       activeCount: activeSubs.length,
       primary,
       daysUntilExpiry,
+      active: activeSubs,
     },
   };
 }

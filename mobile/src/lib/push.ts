@@ -1,11 +1,12 @@
-import Constants from 'expo-constants';
+import Constants, { ExecutionEnvironment } from 'expo-constants';
 import * as Device from 'expo-device';
-import * as Notifications from 'expo-notifications';
 import { Platform } from 'react-native';
 
 // Ensure the foreground notification handler is registered.
 import '@/lib/notifications';
 import { supabase } from '@/lib/supabase';
+
+const isExpoGo = Constants.executionEnvironment === ExecutionEnvironment.StoreClient;
 
 /**
  * Register this device's Expo push token against the signed-in user so the
@@ -14,7 +15,11 @@ import { supabase } from '@/lib/supabase';
  */
 export async function registerPushToken(): Promise<void> {
   try {
+    if (isExpoGo) return; // Expo Go on SDK 53+ can't mint Android push tokens.
     if (!Device.isDevice) return;
+
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const Notifications = require('expo-notifications') as typeof import('expo-notifications');
 
     let granted = (await Notifications.getPermissionsAsync()).granted;
     if (!granted) granted = (await Notifications.requestPermissionsAsync()).granted;

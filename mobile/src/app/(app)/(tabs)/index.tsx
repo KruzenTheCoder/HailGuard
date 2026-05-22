@@ -125,13 +125,19 @@ export default function ComplianceHomeScreen() {
   const subValue =
     summary.subscriptions.activeCount === 0
       ? 'None'
-      : summary.subscriptions.primary?.planType === 'yearly'
-        ? 'Yearly pass'
-        : 'Monthly pass';
+      : summary.subscriptions.activeCount > 1
+        ? `${summary.subscriptions.activeCount} passes`
+        : summary.subscriptions.primary?.planType === 'yearly'
+          ? 'Yearly pass'
+          : 'Monthly pass';
   const subHint =
-    summary.subscriptions.daysUntilExpiry !== null
-      ? `Expires in ${summary.subscriptions.daysUntilExpiry} day${summary.subscriptions.daysUntilExpiry === 1 ? '' : 's'}`
-      : 'Subscribe to a zone';
+    summary.subscriptions.activeCount > 1 && summary.subscriptions.primary
+      ? summary.subscriptions.daysUntilExpiry !== null
+        ? `${summary.subscriptions.primary.zoneName} renews in ${summary.subscriptions.daysUntilExpiry}d`
+        : `${summary.subscriptions.activeCount} zones covered`
+      : summary.subscriptions.daysUntilExpiry !== null
+        ? `Expires in ${summary.subscriptions.daysUntilExpiry} day${summary.subscriptions.daysUntilExpiry === 1 ? '' : 's'}`
+        : 'Subscribe to a zone';
 
   const heroBadgeTone =
     summary.level === 'compliant'

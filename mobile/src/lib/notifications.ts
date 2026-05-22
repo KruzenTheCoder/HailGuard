@@ -1,14 +1,36 @@
-import * as Notifications from 'expo-notifications';
+import Constants, { ExecutionEnvironment } from 'expo-constants';
 
-// Show reminders even when the app is foregrounded.
-Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowBanner: true,
-    shouldShowList: true,
-    shouldPlaySound: false,
-    shouldSetBadge: false,
-  }),
-});
+// Expo Go on SDK 53+ no longer ships the remote-notifications runtime on
+// Android, so even importing expo-notifications logs errors at module load.
+// We lazy-require the module behind this guard so it is never touched in Expo
+// Go — push features only run in development/production builds.
+const isExpoGo = Constants.executionEnvironment === ExecutionEnvironment.StoreClient;
+
+type NotificationsModule = typeof import('expo-notifications');
+
+function loadNotifications(): NotificationsModule | null {
+  if (isExpoGo) return null;
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    return require('expo-notifications') as NotificationsModule;
+  } catch {
+    return null;
+  }
+}
+
+const Notifications = loadNotifications();
+
+if (Notifications) {
+  // Show reminders even when the app is foregrounded.
+  Notifications.setNotificationHandler({
+    handleNotification: async () => ({
+      shouldShowBanner: true,
+      shouldShowList: true,
+      shouldPlaySound: false,
+      shouldSetBadge: false,
+    }),
+  });
+}
 
 export type ExpiryReminder = {
   /** Stable key, e.g. "prdp" or "roadworthy:<vehicleId>". */
@@ -23,6 +45,7 @@ const DAY = 86_400_000;
 const LEAD_DAYS = [30, 15, 0];
 
 export async function ensurePermissions(): Promise<boolean> {
+  if (!Notifications) return false;
   try {
     const settings = await Notifications.getPermissionsAsync();
     if (settings.granted) return true;
@@ -39,6 +62,7 @@ export async function ensurePermissions(): Promise<boolean> {
  * throws into the UI.
  */
 export async function syncExpiryReminders(items: ExpiryReminder[]): Promise<void> {
+  if (!Notifications) return;
   try {
     if (!(await ensurePermissions())) return;
     await Notifications.cancelAllScheduledNotificationsAsync();
