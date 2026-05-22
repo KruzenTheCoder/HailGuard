@@ -1,5 +1,6 @@
 import { Banknote, Download, MapPin, ShieldCheck } from "lucide-react";
 
+import { EmailExpiryRemindersButton } from "@/components/email-buttons";
 import { PageHeader } from "@/components/page-header";
 import { Card, CardContent } from "@/components/ui/card";
 
@@ -31,7 +32,9 @@ export default function ReportsPage() {
       <PageHeader
         title="Reports"
         description="Generate CSV exports for finance, congestion and regulatory submissions."
-      />
+      >
+        <EmailExpiryRemindersButton />
+      </PageHeader>
       <div className="grid grid-cols-1 gap-4 p-8 md:grid-cols-3">
         {REPORTS.map((report) => {
           const Icon = report.icon;

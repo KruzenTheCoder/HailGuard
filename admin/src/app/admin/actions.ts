@@ -4,6 +4,13 @@ import { revalidatePath } from "next/cache";
 
 import type { UserRole } from "@hailguard/shared";
 
+import {
+  sendCertificate,
+  sendComplianceUpdate,
+  sendExpiryReminder,
+  sendIncidentResolved,
+  sendWelcome,
+} from "@/lib/email/send";
 import { getCurrentUser } from "@/lib/auth";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
@@ -212,6 +219,24 @@ export async function setIncidentStatus(
   const { error } = await supabase.from("incidents").update(patch).eq("id", incidentId);
   if (error) throw new Error(error.message);
 
+  if (status === "resolved") {
+    const { data } = await supabase
+      .from("incidents")
+      .select("incident_type, driver_profiles(users(email, full_name))")
+      .eq("id", incidentId)
+      .maybeSingle<{
+        incident_type: string;
+        driver_profiles: { users: { email: string | null; full_name: string | null } | null } | null;
+      }>();
+    const u = data?.driver_profiles?.users;
+    if (u?.email) {
+      await sendIncidentResolved(u.email, {
+        fullName: u.full_name ?? "",
+        type: data!.incident_type,
+      });
+    }
+  }
+
   await writeAudit(admin.id, `incident.${status}`, "incident", incidentId, {});
   revalidateAdmin();
 }
@@ -232,6 +257,20 @@ export async function revokeCompliance(driverId: string) {
   const supabase = await createClient();
   const { data, error } = await supabase.rpc("revoke_compliance", { p_driver_id: driverId });
   if (error) throw new Error(error.message);
+
+  const { data: prof } = await supabase
+    .from("driver_profiles")
+    .select("users(email, full_name)")
+    .eq("id", driverId)
+    .maybeSingle<{ users: { email: string | null; full_name: string | null } | null }>();
+  if (prof?.users?.email) {
+    await sendComplianceUpdate(prof.users.email, {
+      fullName: prof.users.full_name ?? "",
+      reason:
+        "Your HailGuard compliance has been revoked. Active zone passes were cancelled and your vehicle(s) suspended. Contact operations to reinstate.",
+    });
+  }
+
   revalidateAdmin();
   return data as { subscriptionsCancelled: number; vehiclesSuspended: number };
 }
@@ -273,6 +312,7 @@ export async function createPortalUser(input: CreatePortalUserInput) {
   if (upErr) throw new Error(upErr.message);
 
   await writeAudit(me.id, "user.create", "user", userId, { email, role: input.role });
+  await sendWelcome(email, { fullName: input.fullName.trim(), role: input.role });
   revalidateAdmin();
 }
 
@@ -299,4 +339,88 @@ export async function deletePortalUser(userId: string) {
 
   await writeAudit(me.id, "user.delete", "user", userId, {});
   revalidateAdmin();
+}
+
+// ---------------------------------------------------------------------------
+// Email actions (Resend) — themed driver communications
+// ---------------------------------------------------------------------------
+export async function emailCertificate(subscriptionId: string) {
+  await assertAdmin();
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("subscriptions")
+    .select("end_date, zones(name), vehicles(license_plate, driver_profiles(users(email, full_name)))")
+    .eq("id", subscriptionId)
+    .maybeSingle<{
+      end_date: string | null;
+      zones: { name: string } | null;
+      vehicles: {
+        license_plate: string;
+        driver_profiles: { users: { email: string | null; full_name: string | null } | null } | null;
+      } | null;
+    }>();
+
+  const u = data?.vehicles?.driver_profiles?.users;
+  if (!u?.email) throw new Error("Driver has no email address on file.");
+
+  const ok = await sendCertificate(u.email, {
+    fullName: u.full_name ?? "",
+    zone: data?.zones?.name ?? "Zone",
+    plate: data?.vehicles?.license_plate ?? "",
+    validUntil: data?.end_date ?? "—",
+    subscriptionId,
+  });
+  if (!ok) throw new Error("Email could not be sent (is RESEND_API_KEY configured?).");
+}
+
+const DAY_MS = 86_400_000;
+
+/** Email every driver with a compliance document expiring within 30 days. */
+export async function emailExpiryReminders() {
+  await assertAdmin();
+  const supabase = await createClient();
+  const now = Date.now();
+  const cutoff = new Date(now + 30 * DAY_MS).toISOString().slice(0, 10);
+
+  type Lite = { email: string | null; full_name: string | null };
+  const buckets = new Map<string, { fullName: string; items: { label: string; date: string; daysLeft: number }[] }>();
+  const add = (u: Lite | null | undefined, label: string, date: string | null) => {
+    if (!u?.email || !date) return;
+    const daysLeft = Math.ceil((Date.parse(date) - now) / DAY_MS);
+    const b = buckets.get(u.email) ?? { fullName: u.full_name ?? "", items: [] };
+    b.items.push({ label, date, daysLeft });
+    buckets.set(u.email, b);
+  };
+
+  const [profiles, vehicles] = await Promise.all([
+    supabase
+      .from("driver_profiles")
+      .select("prdp_expires_at, users(email, full_name)")
+      .not("prdp_expires_at", "is", null)
+      .lte("prdp_expires_at", cutoff)
+      .returns<{ prdp_expires_at: string; users: Lite | null }[]>(),
+    supabase
+      .from("vehicles")
+      .select("roadworthy_expires_at, license_plate, driver_profiles(users(email, full_name))")
+      .eq("status", "active")
+      .not("roadworthy_expires_at", "is", null)
+      .lte("roadworthy_expires_at", cutoff)
+      .returns<
+        {
+          roadworthy_expires_at: string;
+          license_plate: string;
+          driver_profiles: { users: Lite | null } | null;
+        }[]
+      >(),
+  ]);
+
+  for (const p of profiles.data ?? []) add(p.users, "Professional Driving Permit", p.prdp_expires_at);
+  for (const v of vehicles.data ?? [])
+    add(v.driver_profiles?.users, `Roadworthy — ${v.license_plate}`, v.roadworthy_expires_at);
+
+  let sent = 0;
+  for (const [email, b] of buckets) {
+    if (await sendExpiryReminder(email, b)) sent += 1;
+  }
+  return { recipients: buckets.size, sent };
 }

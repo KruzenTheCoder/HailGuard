@@ -1,4 +1,5 @@
 import { CancelSubscriptionButton } from "@/components/cancel-subscription-button";
+import { EmailCertificateButton } from "@/components/email-buttons";
 import { PageHeader } from "@/components/page-header";
 import { StatusBadge } from "@/components/status-badge";
 import { Card, CardContent } from "@/components/ui/card";
@@ -53,7 +54,10 @@ export default async function SubscriptionsPage() {
                       </TableCell>
                       <TableCell className="text-right">
                         {s.status === "active" || s.status === "pending_payment" ? (
-                          <div className="flex justify-end">
+                          <div className="flex items-center justify-end gap-2">
+                            {s.status === "active" ? (
+                              <EmailCertificateButton subscriptionId={s.id} />
+                            ) : null}
                             <CancelSubscriptionButton id={s.id} />
                           </div>
                         ) : (
