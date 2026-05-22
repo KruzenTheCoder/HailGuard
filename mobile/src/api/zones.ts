@@ -8,6 +8,7 @@ type ZoneRow = {
   name: string;
   description: string | null;
   province: string | null;
+  max_passenger_capacity: number | null;
   monthly_fee: number;
   yearly_fee: number;
   polygon_coordinates: Zone['polygonCoordinates'];
@@ -22,6 +23,7 @@ function mapZone(row: ZoneRow): Zone {
     name: row.name,
     description: row.description,
     province: row.province,
+    maxPassengerCapacity: row.max_passenger_capacity,
     monthlyFee: Number(row.monthly_fee),
     yearlyFee: Number(row.yearly_fee),
     polygonCoordinates: row.polygon_coordinates,

@@ -1,8 +1,10 @@
 import type {
   DriverProfile,
   PlatformVerifications,
+  PrdpStatus,
   ReviewStatus,
   Vehicle,
+  VehicleCategory,
   VehicleStatus,
 } from "@hailguard/shared";
 
@@ -23,6 +25,7 @@ export type DriverProfileRow = {
   prdp_number: string | null;
   prdp_document_path: string | null;
   prdp_expires_at: string | null;
+  prdp_status: PrdpStatus | null;
   platform_verifications: PlatformVerifications | null;
   status: ReviewStatus;
   review_note: string | null;
@@ -37,6 +40,10 @@ export type VehicleRow = {
   model: string;
   year: number;
   license_plate: string;
+  vin_number: string | null;
+  engine_number: string | null;
+  passenger_capacity: number | null;
+  vehicle_category: VehicleCategory | null;
   registration_document_path: string | null;
   roadworthy_certificate_path: string | null;
   roadworthy_expires_at: string | null;
@@ -57,6 +64,7 @@ export function mapDriverProfile(row: DriverProfileRow): DriverProfile {
     prdpNumber: row.prdp_number,
     prdpDocumentPath: row.prdp_document_path,
     prdpExpiresAt: row.prdp_expires_at,
+    prdpStatus: row.prdp_status ?? "pending",
     platformVerifications: row.platform_verifications ?? {},
     status: row.status,
     reviewNote: row.review_note,
@@ -73,6 +81,10 @@ export function mapVehicle(row: VehicleRow): Vehicle {
     model: row.model,
     year: row.year,
     licensePlate: row.license_plate,
+    vinNumber: row.vin_number,
+    engineNumber: row.engine_number,
+    passengerCapacity: row.passenger_capacity,
+    vehicleCategory: row.vehicle_category,
     registrationDocumentPath: row.registration_document_path,
     roadworthyCertificatePath: row.roadworthy_certificate_path,
     roadworthyExpiresAt: row.roadworthy_expires_at,

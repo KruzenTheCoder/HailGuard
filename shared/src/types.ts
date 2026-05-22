@@ -3,7 +3,24 @@
 // generated row types live in database.types.ts; these are the curated,
 // app-facing shapes.
 
-export type UserRole = "driver" | "admin";
+export type UserRole =
+  | "driver"
+  | "admin"
+  | "super_admin"
+  | "compliance_admin"
+  | "reviewer";
+
+/** Backoffice roles (everything except driver). */
+export const STAFF_ROLES: readonly UserRole[] = [
+  "admin",
+  "super_admin",
+  "compliance_admin",
+  "reviewer",
+] as const;
+
+export type PrdpStatus = "pending" | "verified" | "expired";
+
+export type VehicleCategory = "Hatchback" | "Sedan" | "7-Seater/MPV" | "Minibus";
 
 export type ReviewStatus = "pending" | "approved" | "rejected";
 
@@ -71,6 +88,7 @@ export interface DriverProfile {
   prdpNumber: string | null;
   prdpDocumentPath: string | null;
   prdpExpiresAt: string | null;
+  prdpStatus: PrdpStatus;
   platformVerifications: PlatformVerifications;
   status: ReviewStatus;
   reviewNote: string | null;
@@ -85,6 +103,10 @@ export interface Vehicle {
   model: string;
   year: number;
   licensePlate: string;
+  vinNumber: string | null;
+  engineNumber: string | null;
+  passengerCapacity: number | null;
+  vehicleCategory: VehicleCategory | null;
   registrationDocumentPath: string | null;
   roadworthyCertificatePath: string | null;
   roadworthyExpiresAt: string | null;
@@ -102,6 +124,7 @@ export interface Zone {
   name: string;
   description: string | null;
   province: string | null;
+  maxPassengerCapacity: number | null;
   monthlyFee: number;
   yearlyFee: number;
   polygonCoordinates: PolygonCoordinates | null;
