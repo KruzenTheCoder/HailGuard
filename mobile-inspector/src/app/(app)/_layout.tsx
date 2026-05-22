@@ -13,8 +13,9 @@ export default function AppStackLayout() {
         headerShadowVisible: false,
         contentStyle: { backgroundColor: theme.background },
       }}>
-      <Stack.Screen name="index" options={{ title: 'Inspect' }} />
+      <Stack.Screen name="index" options={{ headerShown: false }} />
       <Stack.Screen name="dossier" options={{ title: 'Driver dossier' }} />
+      <Stack.Screen name="vehicle/[id]" options={{ title: 'Vehicle details' }} />
     </Stack>
   );
 }

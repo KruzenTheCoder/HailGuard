@@ -1,5 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
-import { useLocalSearchParams } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useState } from 'react';
 import { Alert, Pressable, StyleSheet, View } from 'react-native';
 
@@ -7,8 +7,6 @@ import {
   useDossier,
   useReportIncident,
   useRevokeCompliance,
-  useSuspendVehicle,
-  type DossierVehicle,
 } from '@/api/inspector';
 import { ThemedText } from '@/components/themed-text';
 import { Button } from '@/components/ui/button';
@@ -33,10 +31,10 @@ function toneFor(theme: ReturnType<typeof useTheme>, status: string): string {
 
 export default function DossierScreen() {
   const theme = useTheme();
+  const router = useRouter();
   const { driverId } = useLocalSearchParams<{ driverId: string }>();
   const { data: dossier, isLoading } = useDossier(driverId);
 
-  const suspend = useSuspendVehicle(driverId);
   const revoke = useRevokeCompliance(driverId);
   const report = useReportIncident(driverId);
 
@@ -53,24 +51,6 @@ export default function DossierScreen() {
   }
 
   const { driver, vehicles, activeSubscriptions } = dossier;
-
-  function confirmSuspend(v: DossierVehicle) {
-    Alert.alert('Suspend vehicle', `Suspend ${v.make} ${v.model} (${v.plate})?`, [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Suspend',
-        style: 'destructive',
-        onPress: async () => {
-          try {
-            await suspend.mutateAsync({ vehicleId: v.id, reason: 'Field inspection' });
-            Alert.alert('Done', 'Vehicle suspended.');
-          } catch (e) {
-            Alert.alert('Error', e instanceof Error ? e.message : 'Failed.');
-          }
-        },
-      },
-    ]);
-  }
 
   function confirmRevoke() {
     Alert.alert(
@@ -137,27 +117,37 @@ export default function DossierScreen() {
         </ThemedText>
       ) : (
         vehicles.map((v) => (
-          <Card key={v.id} style={styles.cardGap}>
-            <View style={styles.row}>
-              <View style={styles.flex}>
-                <ThemedText type="smallBold">
-                  {v.make} {v.model} · {v.plate}
-                </ThemedText>
-                <ThemedText type="small" themeColor="textSecondary">
-                  {v.category ?? 'Vehicle'} · {v.capacity ?? '?'} seats
-                </ThemedText>
+          <Pressable
+            key={v.id}
+            onPress={() =>
+              router.push({ pathname: '/vehicle/[id]', params: { id: v.id } })
+            }
+            accessibilityRole="button"
+            accessibilityLabel={`Open ${v.make} ${v.model} details`}
+            style={({ pressed }) => [pressed && styles.pressed]}>
+            <Card style={styles.cardGap}>
+              <View style={styles.row}>
+                <Ionicons name="car-sport-outline" size={22} color={theme.primary} />
+                <View style={styles.flex}>
+                  <ThemedText type="smallBold">
+                    {v.make} {v.model} · {v.plate}
+                  </ThemedText>
+                  <ThemedText type="small" themeColor="textSecondary">
+                    {v.category ?? 'Vehicle'} · {v.capacity ?? '?'} seats
+                  </ThemedText>
+                </View>
+                <StatusPill label={v.status} color={toneFor(theme, v.status)} />
+                <Ionicons
+                  name="chevron-forward"
+                  size={18}
+                  color={theme.textSecondary}
+                />
               </View>
-              <StatusPill label={v.status} color={toneFor(theme, v.status)} />
-            </View>
-            {v.status !== 'suspended' ? (
-              <Button
-                title="Suspend vehicle"
-                variant="outline"
-                loading={suspend.isPending}
-                onPress={() => confirmSuspend(v)}
-              />
-            ) : null}
-          </Card>
+              <ThemedText type="small" themeColor="textSecondary">
+                Tap for VIN, engine no., documents, pass &amp; incident history.
+              </ThemedText>
+            </Card>
+          </Pressable>
         ))
       )}
 
@@ -256,4 +246,5 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.half,
   },
   revoke: { marginTop: Spacing.four },
+  pressed: { opacity: 0.6 },
 });

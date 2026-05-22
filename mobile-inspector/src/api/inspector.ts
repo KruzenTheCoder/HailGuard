@@ -14,6 +14,56 @@ export type DossierVehicle = {
   roadworthyExpiresAt: string | null;
 };
 
+export type VehicleDetail = {
+  vehicle: {
+    id: string;
+    make: string;
+    model: string;
+    year: number;
+    plate: string;
+    status: VehicleStatus;
+    reviewNote: string | null;
+    vinNumber: string | null;
+    engineNumber: string | null;
+    capacity: number | null;
+    category: string | null;
+    roadworthyExpiresAt: string | null;
+    hasRoadworthyCertificate: boolean;
+    hasRegistrationDocument: boolean;
+    createdAt: string;
+    updatedAt: string;
+  };
+  driver: {
+    id: string;
+    name: string;
+    phone: string | null;
+    idNumber: string | null;
+    licenseNumber: string | null;
+    prdpStatus: PrdpStatus;
+    prdpExpiresAt: string | null;
+    profileStatus: ReviewStatus;
+  };
+  subscriptions: {
+    id: string;
+    zone: string;
+    planType: string;
+    status: string;
+    startDate: string | null;
+    endDate: string | null;
+    amount: number;
+    currency: string;
+    createdAt: string;
+  }[];
+  incidents: {
+    id: string;
+    type: string;
+    status: string;
+    notes: string | null;
+    createdAt: string;
+    resolvedAt: string | null;
+  }[];
+};
+
 export type DossierSubscription = {
   id: string;
   zone: string;
@@ -57,6 +107,7 @@ export function useLookup() {
 }
 
 export const dossierKey = (driverId: string) => ['dossier', driverId] as const;
+export const vehicleDetailKey = (vehicleId: string) => ['vehicle-detail', vehicleId] as const;
 
 export function useDossier(driverId: string) {
   return useQuery({
@@ -70,6 +121,22 @@ export function useDossier(driverId: string) {
   });
 }
 
+export function useVehicleDetail(vehicleId: string) {
+  return useQuery({
+    queryKey: vehicleDetailKey(vehicleId),
+    enabled: !!vehicleId,
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc('inspector_vehicle_detail', {
+        p_vehicle_id: vehicleId,
+      });
+      if (error) {
+        throw new Error(error.message || error.details || error.hint || 'Lookup failed.');
+      }
+      return (data as VehicleDetail | null) ?? null;
+    },
+  });
+}
+
 export function useSuspendVehicle(driverId: string) {
   const qc = useQueryClient();
   return useMutation({
@@ -79,8 +146,12 @@ export function useSuspendVehicle(driverId: string) {
         p_reason: reason,
       });
       if (error) throw error;
+      return vehicleId;
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: dossierKey(driverId) }),
+    onSuccess: (vehicleId) => {
+      qc.invalidateQueries({ queryKey: dossierKey(driverId) });
+      qc.invalidateQueries({ queryKey: vehicleDetailKey(vehicleId) });
+    },
   });
 }
 
