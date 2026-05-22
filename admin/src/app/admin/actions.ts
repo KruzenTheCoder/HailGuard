@@ -2,7 +2,10 @@
 
 import { revalidatePath } from "next/cache";
 
+import type { UserRole } from "@hailguard/shared";
+
 import { getCurrentUser } from "@/lib/auth";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 
 async function assertAdmin() {
@@ -16,7 +19,7 @@ async function assertAdmin() {
 async function writeAudit(
   actorId: string,
   action: string,
-  entityType: "driver_profile" | "vehicle" | "subscription" | "zone" | "incident",
+  entityType: "driver_profile" | "vehicle" | "subscription" | "zone" | "incident" | "user",
   entityId: string | null,
   detail: Record<string, unknown>
 ) {
@@ -231,4 +234,69 @@ export async function revokeCompliance(driverId: string) {
   if (error) throw new Error(error.message);
   revalidateAdmin();
   return data as { subscriptionsCancelled: number; vehiclesSuspended: number };
+}
+
+// ---------------------------------------------------------------------------
+// Portal user management (service-role admin API)
+// ---------------------------------------------------------------------------
+export type CreatePortalUserInput = {
+  email: string;
+  fullName: string;
+  role: UserRole;
+  password: string;
+};
+
+export async function createPortalUser(input: CreatePortalUserInput) {
+  const me = await assertAdmin();
+  const email = input.email.trim().toLowerCase();
+  if (!email) throw new Error("Email is required.");
+  if (input.password.length < 8) throw new Error("Password must be at least 8 characters.");
+
+  const admin = createAdminClient();
+  const { data, error } = await admin.auth.admin.createUser({
+    email,
+    password: input.password,
+    email_confirm: true,
+    user_metadata: { full_name: input.fullName.trim() },
+  });
+  if (error) throw new Error(error.message);
+  const userId = data.user?.id;
+  if (!userId) throw new Error("User creation failed.");
+
+  // handle_new_user inserts public.users (role driver); set the chosen role.
+  const { error: upErr } = await admin
+    .from("users")
+    .upsert(
+      { id: userId, email, full_name: input.fullName.trim() || null, role: input.role },
+      { onConflict: "id" }
+    );
+  if (upErr) throw new Error(upErr.message);
+
+  await writeAudit(me.id, "user.create", "user", userId, { email, role: input.role });
+  revalidateAdmin();
+}
+
+export async function setUserRole(userId: string, role: UserRole) {
+  const me = await assertAdmin();
+  if (userId === me.id && role !== "admin") {
+    throw new Error("You can't remove your own admin access.");
+  }
+  const admin = createAdminClient();
+  const { error } = await admin.from("users").update({ role }).eq("id", userId);
+  if (error) throw new Error(error.message);
+
+  await writeAudit(me.id, "user.set_role", "user", userId, { role });
+  revalidateAdmin();
+}
+
+export async function deletePortalUser(userId: string) {
+  const me = await assertAdmin();
+  if (userId === me.id) throw new Error("You can't delete your own account.");
+
+  const admin = createAdminClient();
+  const { error } = await admin.auth.admin.deleteUser(userId);
+  if (error) throw new Error(error.message);
+
+  await writeAudit(me.id, "user.delete", "user", userId, {});
+  revalidateAdmin();
 }

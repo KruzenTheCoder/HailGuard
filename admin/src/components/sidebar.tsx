@@ -6,6 +6,7 @@ import {
   LayoutDashboard,
   LineChart,
   Map,
+  Settings,
   Siren,
   Users,
   Wallet,
@@ -44,6 +45,10 @@ const GROUPS: NavGroup[] = [
       { href: "/admin/zones", label: "Zones", icon: Map },
       { href: "/admin/reports", label: "Reports", icon: BarChart3 },
     ],
+  },
+  {
+    heading: "Settings",
+    items: [{ href: "/admin/team", label: "Team & users", icon: Settings }],
   },
 ];
 
