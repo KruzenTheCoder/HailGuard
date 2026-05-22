@@ -131,6 +131,20 @@ export default function ProfileEditScreen() {
         </Card>
       ) : null}
 
+      {profile && profile.prdpStatus !== 'verified' ? (
+        <Card style={{ borderColor: theme.warning }}>
+          <ThemedText type="smallBold" themeColor="warning">
+            {profile.prdpStatus === 'expired'
+              ? 'Your PrDP has expired'
+              : 'PrDP verification pending'}
+          </ThemedText>
+          <ThemedText type="small" themeColor="textSecondary">
+            Operating without a verified Professional Driving Permit is restricted. Upload a current
+            PrDP below — zone access stays limited until it&apos;s verified.
+          </ThemedText>
+        </Card>
+      ) : null}
+
       <TextField
         label="South African ID number"
         placeholder="e.g. 9001015800086"

@@ -68,7 +68,11 @@ export function CreateUserForm() {
             onChange={(e) => setRole(e.target.value as UserRole)}
             className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
-            <option value="admin">Admin (portal access)</option>
+            <option value="super_admin">Super admin (full control)</option>
+            <option value="compliance_admin">Compliance admin (final sign-off)</option>
+            <option value="reviewer">Reviewer (recommend only)</option>
+            <option value="inspector">Inspector (field officer app)</option>
+            <option value="admin">Admin (legacy full access)</option>
             <option value="driver">Driver (mobile only)</option>
           </select>
           <div className="flex gap-2">

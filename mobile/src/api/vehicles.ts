@@ -1,3 +1,4 @@
+import type { VehicleCategory } from '@hailguard/shared';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { mapVehicle, type VehicleRow } from '@/lib/mappers';
@@ -56,6 +57,10 @@ export type VehicleInput = {
   model: string;
   year: number;
   licensePlate: string;
+  vinNumber?: string | null;
+  engineNumber?: string | null;
+  passengerCapacity?: number | null;
+  vehicleCategory?: VehicleCategory | null;
   roadworthyExpiresAt?: string | null;
   registrationDocumentPath?: string | null;
   roadworthyCertificatePath?: string | null;
@@ -74,6 +79,10 @@ export function useCreateVehicle() {
           model: input.model,
           year: input.year,
           license_plate: input.licensePlate,
+          vin_number: input.vinNumber ?? null,
+          engine_number: input.engineNumber ?? null,
+          passenger_capacity: input.passengerCapacity ?? null,
+          vehicle_category: input.vehicleCategory ?? null,
           roadworthy_expires_at: input.roadworthyExpiresAt ?? null,
           registration_document_path: input.registrationDocumentPath ?? null,
           roadworthy_certificate_path: input.roadworthyCertificatePath ?? null,

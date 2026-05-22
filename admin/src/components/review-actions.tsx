@@ -1,11 +1,14 @@
 "use client";
 
+import { CheckCircle2, XCircle } from "lucide-react";
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
 
 import {
   approveProfile,
   approveVehicle,
+  recommendProfile,
+  recommendVehicle,
   rejectProfile,
   rejectVehicle,
   suspendVehicle,
@@ -14,9 +17,25 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 
 type Kind = "profile" | "vehicle";
-type Mode = "idle" | "reject" | "suspend";
+type Mode = "idle" | "reject" | "suspend" | "recommend";
 
-export function ReviewActions({ kind, id, status }: { kind: Kind; id: string; status: string }) {
+export type ReviewRecommendation = { recommendation: "approve" | "reject"; note: string | null };
+
+export function ReviewActions({
+  kind,
+  id,
+  status,
+  canApprove = true,
+  canReview = false,
+  recommendation,
+}: {
+  kind: Kind;
+  id: string;
+  status: string;
+  canApprove?: boolean;
+  canReview?: boolean;
+  recommendation?: ReviewRecommendation;
+}) {
   const [mode, setMode] = useState<Mode>("idle");
   const [note, setNote] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -40,10 +59,85 @@ export function ReviewActions({ kind, id, status }: { kind: Kind; id: string; st
 
   const positiveDone = kind === "profile" ? status === "approved" : status === "active";
 
-  if (mode !== "idle") {
+  const recBanner = recommendation ? (
+    <div
+      className={`flex items-center gap-2 rounded-md border px-3 py-2 text-sm ${
+        recommendation.recommendation === "approve"
+          ? "border-emerald-200 bg-emerald-50 text-emerald-700"
+          : "border-red-200 bg-red-50 text-red-700"
+      }`}
+    >
+      {recommendation.recommendation === "approve" ? (
+        <CheckCircle2 className="h-4 w-4" />
+      ) : (
+        <XCircle className="h-4 w-4" />
+      )}
+      <span>
+        Reviewer recommends <strong>{recommendation.recommendation}</strong>
+        {recommendation.note ? ` — ${recommendation.note}` : ""}
+      </span>
+    </div>
+  ) : null;
+
+  // --- Reviewer view: recommend only ---
+  if (!canApprove && canReview) {
+    return (
+      <div className="flex flex-col gap-2">
+        {recBanner}
+        <Textarea
+          placeholder="Recommendation note (optional)"
+          value={note}
+          onChange={(e) => setNote(e.target.value)}
+        />
+        {error ? <p className="text-sm text-destructive">{error}</p> : null}
+        <div className="flex gap-2">
+          <Button
+            size="sm"
+            disabled={pending}
+            onClick={() =>
+              run(
+                () =>
+                  kind === "profile"
+                    ? recommendProfile(id, "approve", note)
+                    : recommendVehicle(id, "approve", note),
+                "Recommendation recorded"
+              )
+            }
+          >
+            Recommend approve
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={pending}
+            onClick={() =>
+              run(
+                () =>
+                  kind === "profile"
+                    ? recommendProfile(id, "reject", note)
+                    : recommendVehicle(id, "reject", note),
+                "Recommendation recorded"
+              )
+            }
+          >
+            Recommend reject
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  // --- Read-only (no review/approve permission) ---
+  if (!canApprove) {
+    return recBanner ?? null;
+  }
+
+  // --- Compliance admin view: final sign-off ---
+  if (mode === "reject" || mode === "suspend") {
     const isReject = mode === "reject";
     return (
       <div className="flex flex-col gap-2">
+        {recBanner}
         <Textarea
           placeholder={isReject ? "Reason for rejection (required)" : "Reason for suspension"}
           value={note}
@@ -81,6 +175,7 @@ export function ReviewActions({ kind, id, status }: { kind: Kind; id: string; st
 
   return (
     <div className="flex flex-col gap-2">
+      {recBanner}
       <div className="flex flex-wrap gap-2">
         {!positiveDone ? (
           <Button

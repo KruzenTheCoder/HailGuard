@@ -8,7 +8,8 @@ export type UserRole =
   | "admin"
   | "super_admin"
   | "compliance_admin"
-  | "reviewer";
+  | "reviewer"
+  | "inspector";
 
 /** Backoffice roles (everything except driver). */
 export const STAFF_ROLES: readonly UserRole[] = [
@@ -21,6 +22,27 @@ export const STAFF_ROLES: readonly UserRole[] = [
 export type PrdpStatus = "pending" | "verified" | "expired";
 
 export type VehicleCategory = "Hatchback" | "Sedan" | "7-Seater/MPV" | "Minibus";
+
+export const VEHICLE_CATEGORIES: readonly VehicleCategory[] = [
+  "Hatchback",
+  "Sedan",
+  "7-Seater/MPV",
+  "Minibus",
+] as const;
+
+/** Plain-language zone eligibility for a given passenger capacity. */
+export function capacityQualification(capacity: number | null | undefined): string {
+  if (capacity == null || Number.isNaN(capacity)) {
+    return "Enter passenger capacity to see which zones this vehicle qualifies for.";
+  }
+  if (capacity <= 4) {
+    return "Standard e-hailing — qualifies for all zones, including capacity-restricted CBD zones.";
+  }
+  if (capacity <= 7) {
+    return "MPV / 7-seater — qualifies for zones allowing 5+ passengers. Some CBD zones may restrict larger vehicles.";
+  }
+  return "Minibus class — a separate commuter permit is typically required; restricted from low-capacity zones.";
+}
 
 export type ReviewStatus = "pending" | "approved" | "rejected";
 

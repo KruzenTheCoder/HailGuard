@@ -37,6 +37,10 @@ export function UserRowActions({
         }
         className="h-8 rounded-md border border-input bg-background px-2 text-xs shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50"
       >
+        <option value="super_admin">Super admin</option>
+        <option value="compliance_admin">Compliance admin</option>
+        <option value="reviewer">Reviewer</option>
+        <option value="inspector">Inspector</option>
         <option value="admin">Admin</option>
         <option value="driver">Driver</option>
       </select>

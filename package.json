@@ -6,11 +6,13 @@
   "workspaces": [
     "shared",
     "admin",
-    "mobile"
+    "mobile",
+    "mobile-inspector"
   ],
   "scripts": {
     "admin": "npm run dev --workspace admin",
     "mobile": "npm run start --workspace mobile",
+    "inspector": "npm run start --workspace mobile-inspector",
     "shared:build": "npm run build --workspace shared",
     "db:types": "supabase gen types typescript --local > shared/src/database.types.ts"
   },

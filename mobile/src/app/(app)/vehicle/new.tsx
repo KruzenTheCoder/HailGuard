@@ -1,13 +1,17 @@
+import { capacityQualification, VEHICLE_CATEGORIES, type VehicleCategory } from '@hailguard/shared';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
-import { Alert } from 'react-native';
+import { Alert, Pressable, StyleSheet, View } from 'react-native';
 
 import { useCreateVehicle, useUpdateVehicle } from '@/api/vehicles';
 import { DocumentField } from '@/components/document-field';
 import { ThemedText } from '@/components/themed-text';
 import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
 import { Screen } from '@/components/ui/screen';
 import { TextField } from '@/components/ui/text-field';
+import { Spacing } from '@/constants/theme';
+import { useTheme } from '@/hooks/use-theme';
 import { BUCKETS, uploadDocument, type PickedDocument } from '@/lib/storage';
 import { useAuth } from '@/providers/auth-provider';
 
@@ -15,6 +19,7 @@ const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 
 export default function NewVehicleScreen() {
   const router = useRouter();
+  const theme = useTheme();
   const { user } = useAuth();
   const createVehicle = useCreateVehicle();
   const updateVehicle = useUpdateVehicle();
@@ -23,11 +28,17 @@ export default function NewVehicleScreen() {
   const [model, setModel] = useState('');
   const [year, setYear] = useState('');
   const [plate, setPlate] = useState('');
+  const [vin, setVin] = useState('');
+  const [engine, setEngine] = useState('');
+  const [capacity, setCapacity] = useState('');
+  const [category, setCategory] = useState<VehicleCategory | null>(null);
   const [roadworthyExpiry, setRoadworthyExpiry] = useState('');
   const [pickedReg, setPickedReg] = useState<PickedDocument | null>(null);
   const [pickedRoadworthy, setPickedRoadworthy] = useState<PickedDocument | null>(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const capacityNum = capacity.trim() ? Number(capacity) : null;
 
   function validate(): string | null {
     if (!make.trim() || !model.trim() || !plate.trim()) {
@@ -37,6 +48,9 @@ export default function NewVehicleScreen() {
     const maxYear = new Date().getFullYear() + 1;
     if (!Number.isInteger(y) || y < 1950 || y > maxYear) {
       return `Enter a valid year between 1950 and ${maxYear}.`;
+    }
+    if (capacity.trim() && (!Number.isInteger(capacityNum) || (capacityNum ?? 0) < 1 || (capacityNum ?? 0) > 60)) {
+      return 'Passenger capacity must be a whole number between 1 and 60.';
     }
     if (roadworthyExpiry && !DATE_RE.test(roadworthyExpiry.trim())) {
       return 'Roadworthy expiry must be in YYYY-MM-DD format.';
@@ -63,6 +77,10 @@ export default function NewVehicleScreen() {
         model: model.trim(),
         year: Number(year),
         licensePlate: plate.trim().toUpperCase(),
+        vinNumber: vin.trim() || null,
+        engineNumber: engine.trim() || null,
+        passengerCapacity: capacityNum,
+        vehicleCategory: category,
         roadworthyExpiresAt: roadworthyExpiry.trim() || null,
       });
 
@@ -113,6 +131,68 @@ export default function NewVehicleScreen() {
         value={plate}
         onChangeText={setPlate}
       />
+
+      <ThemedText type="smallBold" themeColor="textSecondary" style={styles.section}>
+        TECHNICAL SPECIFICATIONS
+      </ThemedText>
+      <TextField
+        label="VIN number"
+        placeholder="Vehicle identification number"
+        autoCapitalize="characters"
+        value={vin}
+        onChangeText={setVin}
+      />
+      <TextField
+        label="Engine number"
+        placeholder="Engine number"
+        autoCapitalize="characters"
+        value={engine}
+        onChangeText={setEngine}
+      />
+      <TextField
+        label="Passenger capacity"
+        placeholder="e.g. 4"
+        keyboardType="number-pad"
+        maxLength={2}
+        value={capacity}
+        onChangeText={setCapacity}
+      />
+
+      <ThemedText type="smallBold" themeColor="textSecondary">
+        Vehicle category
+      </ThemedText>
+      <View style={styles.pills}>
+        {VEHICLE_CATEGORIES.map((c) => {
+          const active = category === c;
+          return (
+            <Pressable
+              key={c}
+              onPress={() => setCategory(c)}
+              style={[
+                styles.pill,
+                {
+                  borderColor: active ? theme.primary : theme.border,
+                  backgroundColor: active ? theme.primary + '15' : theme.backgroundElement,
+                },
+              ]}>
+              <ThemedText type="small" themeColor={active ? 'text' : 'textSecondary'}>
+                {c}
+              </ThemedText>
+            </Pressable>
+          );
+        })}
+      </View>
+
+      <Card style={{ borderColor: theme.primary }}>
+        <ThemedText type="smallBold">Zone eligibility</ThemedText>
+        <ThemedText type="small" themeColor="textSecondary">
+          {capacityQualification(capacityNum)}
+        </ThemedText>
+      </Card>
+
+      <ThemedText type="smallBold" themeColor="textSecondary" style={styles.section}>
+        DOCUMENTS
+      </ThemedText>
       <TextField
         label="Roadworthy expiry (optional)"
         placeholder="YYYY-MM-DD"
@@ -120,12 +200,7 @@ export default function NewVehicleScreen() {
         onChangeText={setRoadworthyExpiry}
         hint="Used to warn you before your roadworthy lapses."
       />
-
-      <DocumentField
-        label="Vehicle registration"
-        picked={pickedReg}
-        onChange={setPickedReg}
-      />
+      <DocumentField label="Vehicle registration" picked={pickedReg} onChange={setPickedReg} />
       <DocumentField
         label="Roadworthy certificate"
         picked={pickedRoadworthy}
@@ -142,3 +217,14 @@ export default function NewVehicleScreen() {
     </Screen>
   );
 }
+
+const styles = StyleSheet.create({
+  section: { letterSpacing: 1, marginTop: Spacing.two },
+  pills: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.two },
+  pill: {
+    borderWidth: 1,
+    borderRadius: 999,
+    paddingHorizontal: Spacing.three,
+    paddingVertical: Spacing.two,
+  },
+});

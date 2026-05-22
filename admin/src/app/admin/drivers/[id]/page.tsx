@@ -10,7 +10,9 @@ import { RevokeComplianceButton } from "@/components/revoke-compliance-button";
 import { StatusBadge } from "@/components/status-badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { BUCKETS, signedUrl } from "@/lib/documents";
+import { getMyPermissions } from "@/lib/permissions";
 import { getDriverDetail } from "@/lib/queries";
+import { getRecommendations } from "@/lib/recommendation-queries";
 
 export const dynamic = "force-dynamic";
 
@@ -26,6 +28,14 @@ export default async function DriverDetailPage({ params }: { params: Promise<{ i
   if (!detail) notFound();
 
   const { profile, user, vehicles } = detail;
+
+  const [perms, recommendations] = await Promise.all([
+    getMyPermissions(),
+    getRecommendations([profile.id, ...vehicles.map((v) => v.id)]),
+  ]);
+  const canApprove = perms.has("application:approve");
+  const canReview = perms.has("application:review");
+  const canRevoke = perms.has("compliance:revoke");
 
   const [idUrl, licenseUrl] = await Promise.all([
     signedUrl(BUCKETS.driver, profile.idDocumentPath),
@@ -56,7 +66,7 @@ export default async function DriverDetailPage({ params }: { params: Promise<{ i
     <>
       <PageHeader title={driverName} description={user?.email ?? user?.phone_number ?? undefined}>
         <StatusBadge status={profile.status} />
-        <RevokeComplianceButton driverId={profile.id} />
+        {canRevoke ? <RevokeComplianceButton driverId={profile.id} /> : null}
       </PageHeader>
 
       <div className="flex flex-col gap-6 p-8">
@@ -86,7 +96,14 @@ export default async function DriverDetailPage({ params }: { params: Promise<{ i
                 <span className="font-medium text-foreground">Note:</span> {profile.reviewNote}
               </p>
             ) : null}
-            <ReviewActions kind="profile" id={profile.id} status={profile.status} />
+            <ReviewActions
+              kind="profile"
+              id={profile.id}
+              status={profile.status}
+              canApprove={canApprove}
+              canReview={canReview}
+              recommendation={recommendations[profile.id]}
+            />
           </CardContent>
         </Card>
 
@@ -133,8 +150,10 @@ export default async function DriverDetailPage({ params }: { params: Promise<{ i
                   <StatusBadge status={vehicle.status} />
                 </CardHeader>
                 <CardContent className="flex flex-col gap-4">
-                  <div className="grid grid-cols-2 gap-4 text-sm">
+                  <div className="grid grid-cols-2 gap-4 text-sm sm:grid-cols-4">
                     <Field label="Year" value={String(vehicle.year)} />
+                    <Field label="Capacity" value={vehicle.passengerCapacity != null ? `${vehicle.passengerCapacity} pax` : null} />
+                    <Field label="Category" value={vehicle.vehicleCategory} />
                     <Field label="Roadworthy expiry" value={vehicle.roadworthyExpiresAt} />
                   </div>
                   <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -146,7 +165,14 @@ export default async function DriverDetailPage({ params }: { params: Promise<{ i
                       <span className="font-medium text-foreground">Note:</span> {vehicle.reviewNote}
                     </p>
                   ) : null}
-                  <ReviewActions kind="vehicle" id={vehicle.id} status={vehicle.status} />
+                  <ReviewActions
+                    kind="vehicle"
+                    id={vehicle.id}
+                    status={vehicle.status}
+                    canApprove={canApprove}
+                    canReview={canReview}
+                    recommendation={recommendations[vehicle.id]}
+                  />
                 </CardContent>
               </Card>
             ))

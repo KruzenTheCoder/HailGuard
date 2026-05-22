@@ -15,10 +15,24 @@ import { getCurrentUser } from "@/lib/auth";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 
+const STAFF_ROLES: UserRole[] = ["admin", "super_admin", "compliance_admin", "reviewer"];
+
+/** Authenticated backoffice staff (any portal role). */
 async function assertAdmin() {
   const user = await getCurrentUser();
-  if (!user || user.role !== "admin") {
+  if (!user || !STAFF_ROLES.includes(user.role)) {
     throw new Error("Unauthorized");
+  }
+  return user;
+}
+
+/** Staff member who additionally holds a specific UAC permission. */
+async function assertPermission(perm: string) {
+  const user = await assertAdmin();
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("has_permission", { p_key: perm });
+  if (error || data !== true) {
+    throw new Error("You do not have permission to perform this action.");
   }
   return user;
 }
@@ -46,7 +60,7 @@ function revalidateAdmin() {
 }
 
 export async function approveProfile(profileId: string) {
-  const admin = await assertAdmin();
+  const admin = await assertPermission("application:approve");
   const supabase = await createClient();
   const { error } = await supabase
     .from("driver_profiles")
@@ -59,7 +73,7 @@ export async function approveProfile(profileId: string) {
 }
 
 export async function rejectProfile(profileId: string, note: string) {
-  const admin = await assertAdmin();
+  const admin = await assertPermission("application:approve");
   if (!note.trim()) throw new Error("A rejection reason is required.");
 
   const supabase = await createClient();
@@ -74,7 +88,7 @@ export async function rejectProfile(profileId: string, note: string) {
 }
 
 export async function approveVehicle(vehicleId: string) {
-  const admin = await assertAdmin();
+  const admin = await assertPermission("application:approve");
   const supabase = await createClient();
   const { error } = await supabase
     .from("vehicles")
@@ -87,7 +101,7 @@ export async function approveVehicle(vehicleId: string) {
 }
 
 export async function rejectVehicle(vehicleId: string, note: string) {
-  const admin = await assertAdmin();
+  const admin = await assertPermission("application:approve");
   if (!note.trim()) throw new Error("A rejection reason is required.");
 
   const supabase = await createClient();
@@ -102,7 +116,7 @@ export async function rejectVehicle(vehicleId: string, note: string) {
 }
 
 export async function suspendVehicle(vehicleId: string, note: string) {
-  const admin = await assertAdmin();
+  const admin = await assertPermission("application:approve");
   const supabase = await createClient();
   const { error } = await supabase
     .from("vehicles")
@@ -118,7 +132,7 @@ export async function suspendVehicle(vehicleId: string, note: string) {
 // Subscriptions
 // ---------------------------------------------------------------------------
 export async function cancelSubscription(subscriptionId: string) {
-  const admin = await assertAdmin();
+  const admin = await assertPermission("subscription:write");
   const supabase = await createClient();
   const { error } = await supabase
     .from("subscriptions")
@@ -142,7 +156,7 @@ export type CreateZoneInput = {
 };
 
 export async function createZone(input: CreateZoneInput) {
-  const admin = await assertAdmin();
+  const admin = await assertPermission("zone:write");
   if (!input.name.trim()) throw new Error("Zone name is required.");
   if (!input.province.trim()) throw new Error("Province is required.");
   if (input.monthlyFee < 0 || input.yearlyFee < 0) throw new Error("Fees cannot be negative.");
@@ -166,7 +180,7 @@ export async function createZone(input: CreateZoneInput) {
 }
 
 export async function setZoneActive(zoneId: string, isActive: boolean) {
-  const admin = await assertAdmin();
+  const admin = await assertPermission("zone:write");
   const supabase = await createClient();
   const { error } = await supabase.from("zones").update({ is_active: isActive }).eq("id", zoneId);
   if (error) throw new Error(error.message);
@@ -176,7 +190,7 @@ export async function setZoneActive(zoneId: string, isActive: boolean) {
 }
 
 export async function deleteZone(zoneId: string) {
-  const admin = await assertAdmin();
+  const admin = await assertPermission("zone:write");
   const supabase = await createClient();
 
   // A zone with subscriptions can't be hard-deleted (FK is ON DELETE RESTRICT);
@@ -206,7 +220,7 @@ export async function setIncidentStatus(
   status: "open" | "under_investigation" | "resolved",
   resolutionNotes?: string
 ) {
-  const admin = await assertAdmin();
+  const admin = await assertPermission("incident:manage");
   const supabase = await createClient();
   const patch: Record<string, unknown> = { status };
   if (status === "resolved") {
@@ -243,7 +257,7 @@ export async function setIncidentStatus(
 
 /** Auto-suspend expired roadworthy + expire lapsed subscriptions. */
 export async function runComplianceSweep() {
-  await assertAdmin();
+  await assertPermission("compliance:revoke");
   const supabase = await createClient();
   const { data, error } = await supabase.rpc("run_compliance_sweep");
   if (error) throw new Error(error.message);
@@ -253,7 +267,7 @@ export async function runComplianceSweep() {
 
 /** One-click: cancel active subscriptions + suspend active vehicles for a driver. */
 export async function revokeCompliance(driverId: string) {
-  await assertAdmin();
+  await assertPermission("compliance:revoke");
   const supabase = await createClient();
   const { data, error } = await supabase.rpc("revoke_compliance", { p_driver_id: driverId });
   if (error) throw new Error(error.message);
@@ -286,7 +300,7 @@ export type CreatePortalUserInput = {
 };
 
 export async function createPortalUser(input: CreatePortalUserInput) {
-  const me = await assertAdmin();
+  const me = await assertPermission("user:write");
   const email = input.email.trim().toLowerCase();
   if (!email) throw new Error("Email is required.");
   if (input.password.length < 8) throw new Error("Password must be at least 8 characters.");
@@ -317,7 +331,7 @@ export async function createPortalUser(input: CreatePortalUserInput) {
 }
 
 export async function setUserRole(userId: string, role: UserRole) {
-  const me = await assertAdmin();
+  const me = await assertPermission("user:write");
   if (userId === me.id && role !== "admin") {
     throw new Error("You can't remove your own admin access.");
   }
@@ -330,7 +344,7 @@ export async function setUserRole(userId: string, role: UserRole) {
 }
 
 export async function deletePortalUser(userId: string) {
-  const me = await assertAdmin();
+  const me = await assertPermission("user:write");
   if (userId === me.id) throw new Error("You can't delete your own account.");
 
   const admin = createAdminClient();
@@ -423,4 +437,48 @@ export async function emailExpiryReminders() {
     if (await sendExpiryReminder(email, b)) sent += 1;
   }
   return { recipients: buckets.size, sent };
+}
+
+// ---------------------------------------------------------------------------
+// Reviewer recommendation pipeline (non-binding; final call = application:approve)
+// ---------------------------------------------------------------------------
+async function recommend(
+  entityType: "driver_profile" | "vehicle",
+  entityId: string,
+  recommendation: "approve" | "reject",
+  note: string
+) {
+  const me = await assertPermission("application:review");
+  const supabase = await createClient();
+  const { error } = await supabase.from("application_recommendations").upsert(
+    {
+      entity_type: entityType,
+      entity_id: entityId,
+      recommendation,
+      note: note.trim() || null,
+      reviewer_id: me.id,
+    },
+    { onConflict: "entity_type,entity_id" }
+  );
+  if (error) throw new Error(error.message);
+  await writeAudit(me.id, `${entityType}.recommend.${recommendation}`, entityType, entityId, {
+    note: note.trim(),
+  });
+  revalidateAdmin();
+}
+
+export async function recommendProfile(
+  profileId: string,
+  recommendation: "approve" | "reject",
+  note: string
+) {
+  await recommend("driver_profile", profileId, recommendation, note);
+}
+
+export async function recommendVehicle(
+  vehicleId: string,
+  recommendation: "approve" | "reject",
+  note: string
+) {
+  await recommend("vehicle", vehicleId, recommendation, note);
 }
