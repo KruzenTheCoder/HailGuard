@@ -52,6 +52,16 @@ export default function AppTabsLayout() {
           ),
         }}
       />
+      <Tabs.Screen
+        name="support"
+        options={{
+          title: 'Support Chat',
+          tabBarLabel: 'Support',
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="chatbubble-ellipses-outline" color={color} size={size} />
+          ),
+        }}
+      />
     </Tabs>
   );
 }

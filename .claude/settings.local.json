@@ -29,7 +29,18 @@
       "Bash(findstr notif *)",
       "Bash(node --check supabase/seed-accounts.mjs)",
       "mcp__752d15a1-816f-46bc-bf11-2ec96f22ec24__apply_migration",
-      "mcp__752d15a1-816f-46bc-bf11-2ec96f22ec24__execute_sql"
+      "mcp__752d15a1-816f-46bc-bf11-2ec96f22ec24__execute_sql",
+      "Bash(awk -F/ '{print $1}')",
+      "Bash(git archive *)",
+      "Bash(tar -x -C \"C:\\\\Users\\\\Kruz Naidoo\\\\TaxiCompliance\")",
+      "Bash(node _rename.mjs branding)",
+      "Bash(node _rename.mjs zone)",
+      "Bash(node scripts/generate-pwa-icons.mjs)",
+      "Bash(NEXT_PUBLIC_SUPABASE_URL=\"https://dummy.supabase.co\" NEXT_PUBLIC_SUPABASE_ANON_KEY=\"dummy-anon-key\" SUPABASE_SERVICE_ROLE_KEY=\"dummy-service-key\" npm run build)",
+      "Bash(grep -rni -e \"e-hailing\" -e \"ehailing\" -e \"hail\" -e \"uber\\\\|bolt\\\\|indrive\" mobile/.env.example mobile-inspector/.env.example admin/.env.example mobile/app.json mobile-inspector/app.json)",
+      "Bash(grep -h \"description\" mobile/app.json mobile-inspector/app.json)",
+      "Bash(curl -s -o /dev/null -w \"auth health: %{http_code}\\\\n\" --max-time 15 \"https://fifnagjpqdwdkgfpsevm.supabase.co/auth/v1/health\" -H \"apikey: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZpZm5hZ2pwcWR3ZGtnZnBzZXZtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkzNzkyMzIsImV4cCI6MjA5NDk1NTIzMn0.daH7fNrdYyNkIiYbL5cRpgYLGjWAaPO_jK9L59YubAg\")",
+      "Bash(netstat -ano)"
     ]
   }
 }

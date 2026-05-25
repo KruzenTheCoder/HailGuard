@@ -5,11 +5,13 @@ import { ZoneActiveToggle } from "@/components/zone-active-toggle";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { requirePermission } from "@/lib/permissions";
 import { formatZAR, getZonesAdmin, type ZoneListItem } from "@/lib/queries";
 
 export const dynamic = "force-dynamic";
 
 export default async function ZonesPage() {
+  await requirePermission("zone:write");
   const zones = await getZonesAdmin();
 
   // Group by province (nulls last).

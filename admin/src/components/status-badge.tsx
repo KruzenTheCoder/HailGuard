@@ -5,6 +5,7 @@ type Tone = "success" | "warning" | "danger" | "neutral" | "info";
 const STATUS_TONE: Record<string, Tone> = {
   approved: "success",
   active: "success",
+  verified: "success",
   pending: "warning",
   pending_payment: "warning",
   rejected: "danger",
@@ -18,6 +19,7 @@ const STATUS_LABEL: Record<string, string> = {
   pending_payment: "Payment due",
   approved: "Approved",
   active: "Active",
+  verified: "Verified",
   rejected: "Rejected",
   suspended: "Suspended",
   expired: "Expired",

@@ -6,6 +6,7 @@ import { SweepButton } from "@/components/sweep-button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { getIncidents } from "@/lib/incident-queries";
+import { requirePermission } from "@/lib/permissions";
 
 export const dynamic = "force-dynamic";
 
@@ -24,6 +25,7 @@ function statusTone(status: string): "danger" | "warning" | "success" | "neutral
 }
 
 export default async function IncidentsPage() {
+  await requirePermission("incident:manage");
   const incidents = await getIncidents();
   const openCount = incidents.filter((i) => i.status !== "resolved").length;
 

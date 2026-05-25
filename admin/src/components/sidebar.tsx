@@ -6,6 +6,7 @@ import {
   LayoutDashboard,
   LineChart,
   Map,
+  MessageSquare,
   ScrollText,
   Settings,
   Siren,
@@ -20,45 +21,67 @@ import { BrandLogo } from "@/components/brand-logo";
 import { SignOutButton } from "@/components/sign-out-button";
 import { cn } from "@/lib/utils";
 
-type NavItem = { href: string; label: string; icon: LucideIcon; exact?: boolean };
+type NavItem = { href: string; label: string; icon: LucideIcon; exact?: boolean; perm?: string };
 type NavGroup = { heading: string; items: NavItem[] };
 
+// `perm` gates visibility; items with no perm are always shown to staff.
 const GROUPS: NavGroup[] = [
   {
     heading: "Overview",
     items: [
       { href: "/admin", label: "Dashboard", icon: LayoutDashboard, exact: true },
-      { href: "/admin/analytics", label: "Analytics", icon: LineChart },
+      { href: "/admin/analytics", label: "Analytics", icon: LineChart, perm: "audit:read" },
     ],
   },
   {
     heading: "Compliance",
     items: [
-      { href: "/admin/applications", label: "Applications", icon: ClipboardList },
-      { href: "/admin/drivers", label: "Drivers", icon: Users },
-      { href: "/admin/incidents", label: "Incidents", icon: Siren },
+      { href: "/admin/applications", label: "Applications", icon: ClipboardList, perm: "application:review" },
+      { href: "/admin/drivers", label: "Drivers", icon: Users, perm: "application:review" },
+      { href: "/admin/incidents", label: "Incidents", icon: Siren, perm: "incident:manage" },
+      { href: "/admin/chats", label: "Support Queue", icon: MessageSquare, perm: "application:review" },
     ],
   },
   {
     heading: "Operations",
     items: [
-      { href: "/admin/subscriptions", label: "Subscriptions", icon: Wallet },
-      { href: "/admin/zones", label: "Zones", icon: Map },
-      { href: "/admin/reports", label: "Reports", icon: BarChart3 },
+      { href: "/admin/subscriptions", label: "Subscriptions", icon: Wallet, perm: "subscription:write" },
+      { href: "/admin/zones", label: "Zones", icon: Map, perm: "zone:write" },
+      { href: "/admin/reports", label: "Reports", icon: BarChart3, perm: "audit:read" },
     ],
   },
   {
     heading: "Settings",
     items: [
-      { href: "/admin/team", label: "Team & users", icon: Settings },
-      { href: "/admin/audit", label: "Audit log", icon: ScrollText },
+      { href: "/admin/team", label: "Team & users", icon: Settings, perm: "user:write" },
+      { href: "/admin/audit", label: "Audit log", icon: ScrollText, perm: "audit:read" },
     ],
   },
 ];
 
-export function Sidebar({ email }: { email: string | null }) {
+const ROLE_LABELS: Record<string, string> = {
+  super_admin: "Super admin",
+  compliance_admin: "Compliance admin",
+  reviewer: "Reviewer",
+  admin: "Administrator",
+};
+
+export function Sidebar({
+  email,
+  role,
+  permissions,
+}: {
+  email: string | null;
+  role: string;
+  permissions: string[];
+}) {
   const pathname = usePathname();
   const initial = (email?.[0] ?? "A").toUpperCase();
+  const has = (perm?: string) => !perm || permissions.includes(perm);
+
+  const groups = GROUPS.map((g) => ({ ...g, items: g.items.filter((i) => has(i.perm)) })).filter(
+    (g) => g.items.length > 0
+  );
 
   return (
     <aside className="flex w-64 shrink-0 flex-col bg-sidebar text-sidebar-foreground">
@@ -75,7 +98,7 @@ export function Sidebar({ email }: { email: string | null }) {
       </div>
 
       <nav className="flex flex-1 flex-col gap-5 overflow-y-auto px-3 py-2">
-        {GROUPS.map((group) => (
+        {groups.map((group) => (
           <div key={group.heading} className="flex flex-col gap-1">
             <p className="px-3 pb-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-sidebar-foreground/40">
               {group.heading}
@@ -115,8 +138,8 @@ export function Sidebar({ email }: { email: string | null }) {
             {initial}
           </span>
           <div className="min-w-0">
-            <p className="truncate text-xs font-medium text-white">{email ?? "Administrator"}</p>
-            <p className="text-[10px] text-sidebar-foreground/50">Administrator</p>
+            <p className="truncate text-xs font-medium text-white">{email ?? "Staff"}</p>
+            <p className="text-[10px] text-sidebar-foreground/50">{ROLE_LABELS[role] ?? role}</p>
           </div>
         </div>
         <SignOutButton />

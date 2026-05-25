@@ -1,16 +1,18 @@
 import { capacityQualification, type EHailingPlatform } from "@hailguard/shared";
 import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 
 import { DocumentThumb } from "@/components/document-thumb";
 import { PageHeader } from "@/components/page-header";
+import { PrdpReviewActions } from "@/components/prdp-review-actions";
 import { ReviewActions } from "@/components/review-actions";
 import { RevokeComplianceButton } from "@/components/revoke-compliance-button";
 import { StatusBadge } from "@/components/status-badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { getMyAssignedEntityIds } from "@/lib/assignment-queries";
 import { BUCKETS, signedUrl } from "@/lib/documents";
-import { getMyPermissions } from "@/lib/permissions";
+import { getMyPermissions, requirePermission } from "@/lib/permissions";
 import { getDriverDetail } from "@/lib/queries";
 import { getRecommendations } from "@/lib/recommendation-queries";
 
@@ -23,6 +25,7 @@ const PLATFORM_LABELS: Record<EHailingPlatform, string> = {
 };
 
 export default async function DriverDetailPage({ params }: { params: Promise<{ id: string }> }) {
+  await requirePermission("application:review");
   const { id } = await params;
   const detail = await getDriverDetail(id);
   if (!detail) notFound();
@@ -37,9 +40,18 @@ export default async function DriverDetailPage({ params }: { params: Promise<{ i
   const canReview = perms.has("application:review");
   const canRevoke = perms.has("compliance:revoke");
 
-  const [idUrl, licenseUrl] = await Promise.all([
+  // Reviewers may only open drivers with an application assigned to them.
+  const reviewerOnly = canReview && !canApprove && !perms.has("application:assign");
+  if (reviewerOnly) {
+    const assigned = await getMyAssignedEntityIds();
+    const hasAssignment = assigned.has(profile.id) || vehicles.some((v) => assigned.has(v.id));
+    if (!hasAssignment) redirect("/admin/applications");
+  }
+
+  const [idUrl, licenseUrl, prdpUrl] = await Promise.all([
     signedUrl(BUCKETS.driver, profile.idDocumentPath),
     signedUrl(BUCKETS.driver, profile.licenseDocumentPath),
+    signedUrl(BUCKETS.driver, profile.prdpDocumentPath),
   ]);
 
   const platformEntries = await Promise.all(
@@ -104,6 +116,34 @@ export default async function DriverDetailPage({ params }: { params: Promise<{ i
               canReview={canReview}
               recommendation={recommendations[profile.id]}
             />
+          </CardContent>
+        </Card>
+
+        {/* Professional Driving Permit (PrDP) */}
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between">
+            <CardTitle className="text-base">Professional Driving Permit (PrDP)</CardTitle>
+            <StatusBadge status={profile.prdpStatus} />
+          </CardHeader>
+          <CardContent className="flex flex-col gap-4">
+            {!profile.prdpNumber ? (
+              <p className="text-sm text-muted-foreground py-2 text-center">No PrDP permit details submitted yet.</p>
+            ) : (
+              <>
+                <div className="grid grid-cols-2 gap-4 text-sm">
+                  <Field label="PrDP number" value={profile.prdpNumber} />
+                  <Field label="Expiry date" value={profile.prdpExpiresAt} />
+                </div>
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                  <DocumentThumb label="PrDP Permit" url={prdpUrl} />
+                </div>
+                <PrdpReviewActions
+                  profileId={profile.id}
+                  prdpStatus={profile.prdpStatus}
+                  canReview={canReview || canApprove}
+                />
+              </>
+            )}
           </CardContent>
         </Card>
 

@@ -482,3 +482,95 @@ export async function recommendVehicle(
 ) {
   await recommend("vehicle", vehicleId, recommendation, note);
 }
+
+// ---------------------------------------------------------------------------
+// Assign applications to reviewers (compliance/super-admin)
+// ---------------------------------------------------------------------------
+export async function assignApplication(
+  entityType: "driver_profile" | "vehicle",
+  entityId: string,
+  reviewerId: string | null
+) {
+  const me = await assertPermission("application:assign");
+  const supabase = await createClient();
+
+  if (!reviewerId) {
+    const { error } = await supabase
+      .from("application_assignments")
+      .delete()
+      .eq("entity_type", entityType)
+      .eq("entity_id", entityId);
+    if (error) throw new Error(error.message);
+  } else {
+    const { error } = await supabase.from("application_assignments").upsert(
+      { entity_type: entityType, entity_id: entityId, reviewer_id: reviewerId, assigned_by: me.id },
+      { onConflict: "entity_type,entity_id" }
+    );
+    if (error) throw new Error(error.message);
+  }
+
+  await writeAudit(me.id, "application.assign", entityType, entityId, { reviewerId });
+  revalidateAdmin();
+}
+
+// ---------------------------------------------------------------------------
+// PrDP Review
+// ---------------------------------------------------------------------------
+export async function verifyPrdp(profileId: string) {
+  const me = await assertPermission("application:review");
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("driver_profiles")
+    .update({ prdp_status: "verified", review_note: null })
+    .eq("id", profileId);
+  if (error) throw new Error(error.message);
+
+  await writeAudit(me.id, "profile.prdp_verify", "driver_profile", profileId, {});
+  revalidateAdmin();
+}
+
+export async function rejectPrdp(profileId: string, note: string) {
+  const me = await assertPermission("application:review");
+  if (!note.trim()) throw new Error("A rejection reason is required.");
+
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("driver_profiles")
+    .update({ prdp_status: "pending", review_note: note.trim() })
+    .eq("id", profileId);
+  if (error) throw new Error(error.message);
+
+  await writeAudit(me.id, "profile.prdp_reject", "driver_profile", profileId, { note: note.trim() });
+  revalidateAdmin();
+}
+
+// ---------------------------------------------------------------------------
+// Support Chats
+// ---------------------------------------------------------------------------
+export async function sendChatSupportMessage(roomId: string, message: string) {
+  const me = await assertAdmin();
+  if (!message.trim()) throw new Error("Message cannot be empty.");
+
+  const supabase = await createClient();
+  const { error } = await supabase.from("chat_messages").insert({
+    room_id: roomId,
+    sender_id: me.id,
+    message: message.trim(),
+  });
+  if (error) throw new Error(error.message);
+  
+  revalidateAdmin();
+}
+
+export async function setChatRoomStatus(roomId: string, status: "open" | "resolved") {
+  const me = await assertAdmin();
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("chat_rooms")
+    .update({ status })
+    .eq("id", roomId);
+  if (error) throw new Error(error.message);
+
+  await writeAudit(me.id, `chat.status_${status}`, "user", null, { roomId });
+  revalidateAdmin();
+}

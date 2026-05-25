@@ -4,11 +4,13 @@ import { PageHeader } from "@/components/page-header";
 import { StatusBadge } from "@/components/status-badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { requirePermission } from "@/lib/permissions";
 import { getDrivers } from "@/lib/queries";
 
 export const dynamic = "force-dynamic";
 
 export default async function DriversPage() {
+  await requirePermission("application:review");
   const drivers = await getDrivers();
 
   return (

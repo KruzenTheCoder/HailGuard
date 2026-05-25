@@ -210,15 +210,16 @@ async function run() {
     creds.push([email, role]);
   }
 
-  // Promote the operator's own account to super_admin if it exists.
+  // Promote the operator's own account to super_admin (and align its password)
+  // if it exists.
   const superEmail = process.env.SUPER_ADMIN_EMAIL || "Kruz143000@gmail.com";
-  const { data: promoted } = await sb
-    .from("users")
-    .update({ role: "super_admin" })
-    .ilike("email", superEmail)
-    .select("email");
-  if (promoted && promoted.length > 0) {
-    console.log(`Promoted ${promoted[0].email} to super_admin.`);
+  const superId = await getUserIdByEmail(superEmail);
+  if (superId) {
+    await sb.auth.admin.updateUserById(superId, { password: PASSWORD });
+    await sb.from("users").update({ role: "super_admin" }).eq("id", superId);
+    console.log(`Promoted ${superEmail} to super_admin and set password to ${PASSWORD}.`);
+  } else {
+    console.log(`Note: ${superEmail} not found — sign up once, then re-run to promote.`);
   }
 
   // Demo a capacity restriction: Johannesburg CBD caps at 4 passengers.

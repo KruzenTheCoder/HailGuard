@@ -6,6 +6,7 @@ import { Sidebar } from "@/components/sidebar";
 import { SignOutButton } from "@/components/sign-out-button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { getCurrentUser } from "@/lib/auth";
+import { getMyPermissions } from "@/lib/permissions";
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   const user = await getCurrentUser();
@@ -36,9 +37,11 @@ export default async function AdminLayout({ children }: { children: React.ReactN
     );
   }
 
+  const permissions = await getMyPermissions();
+
   return (
     <div className="flex min-h-screen">
-      <Sidebar email={user.email} />
+      <Sidebar email={user.email} role={user.role} permissions={[...permissions]} />
       <main className="flex-1 overflow-x-hidden bg-muted/30">{children}</main>
     </div>
   );

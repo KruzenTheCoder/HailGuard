@@ -67,12 +67,54 @@ export default function InspectHome() {
     if (handled.current) return;
     handled.current = true;
     setScanning(false);
+
+    // 1. Try to extract subscription UUID
     const subId = extractSubscriptionId(data);
-    if (!subId) {
-      Alert.alert('Unrecognised code', 'That QR is not a HailGuard Zone Pass.');
+    if (subId) {
+      void runLookup('subscription', subId);
       return;
     }
-    void runLookup('subscription', subId);
+
+    // 2. Try to match 13-digit SA ID number
+    const idMatch = data.match(/\b\d{13}\b/);
+    if (idMatch) {
+      void runLookup('id', idMatch[0]);
+      return;
+    }
+
+    // 3. Try to match vehicle registration plate (SA plate patterns)
+    const plateMatch = data.match(/\b([A-Z]{2,3}\s?\d{2,4}\s?[A-Z]{1,2})\b/) ||
+                       data.match(/\b(\d{3}\s?[A-Z]{3})\b/);
+    if (plateMatch) {
+      const cleanPlate = plateMatch[0].replace(/\s+/g, '').toUpperCase();
+      void runLookup('plate', cleanPlate);
+      return;
+    }
+
+    // 4. Try parsing PDF417 SA License Disk barcode format (% delimited values)
+    if (data.includes('%')) {
+      const parts = data.split('%');
+      for (const part of parts) {
+        const clean = part.trim();
+        if (/^[A-Z0-9\s]{6,10}$/i.test(clean) && /[A-Z]/i.test(clean) && /[0-9]/.test(clean)) {
+          const cleanPlate = clean.replace(/\s+/g, '').toUpperCase();
+          void runLookup('plate', cleanPlate);
+          return;
+        }
+      }
+    }
+
+    // 5. Generic auto-lookup fallback (tries all matching types)
+    const cleanInput = data.trim();
+    if (cleanInput.length >= 4 && cleanInput.length <= 20) {
+      void runLookup('auto', cleanInput);
+      return;
+    }
+
+    Alert.alert(
+      'Unrecognised Barcode',
+      'Could not extract a valid Zone Pass QR, SA ID card, driver\'s licence, or vehicle licence disc.'
+    );
   }
 
   if (scanning) {
@@ -81,13 +123,13 @@ export default function InspectHome() {
         <CameraView
           style={StyleSheet.absoluteFill}
           facing="back"
-          barcodeScannerSettings={{ barcodeTypes: ['qr'] }}
+          barcodeScannerSettings={{ barcodeTypes: ['qr', 'pdf417'] }}
           onBarcodeScanned={({ data }) => onScan(data)}
         />
         <View style={styles.scanOverlay}>
           <View style={styles.reticle} />
           <ThemedText type="smallBold" style={styles.scanHint}>
-            Point at the driver&apos;s Zone Pass QR
+            Scan Pass QR, ID card, driving licence or licence disc
           </ThemedText>
           <Button title="Cancel" variant="secondary" onPress={() => setScanning(false)} />
         </View>
@@ -151,10 +193,9 @@ export default function InspectHome() {
                 ]}>
                 <Ionicons name="qr-code-outline" size={36} color={theme.primary} />
               </View>
-              <ThemedText style={styles.scanTitle}>Scan a Zone Pass</ThemedText>
+              <ThemedText style={styles.scanTitle}>Scan Pass, ID or Licence</ThemedText>
               <ThemedText type="small" themeColor="textSecondary" style={styles.scanCopy}>
-                Point your camera at the driver&apos;s digital pass QR to validate them in
-                seconds.
+                Point your camera at a Zone Pass QR, SA ID card, driver&apos;s licence, or licence disc barcode.
               </ThemedText>
               <Button
                 title="Open scanner"

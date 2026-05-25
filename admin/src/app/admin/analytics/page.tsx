@@ -3,11 +3,13 @@ import { MetricCard } from "@/components/metric-card";
 import { PageHeader } from "@/components/page-header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { getOperationsAnalytics } from "@/lib/analytics-queries";
+import { requirePermission } from "@/lib/permissions";
 import { formatZAR, getDashboardMetrics } from "@/lib/queries";
 
 export const dynamic = "force-dynamic";
 
 export default async function AnalyticsPage() {
+  await requirePermission("audit:read");
   const [m, ops] = await Promise.all([getDashboardMetrics(), getOperationsAnalytics()]);
 
   const expiringTotal =

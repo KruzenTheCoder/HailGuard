@@ -5,11 +5,13 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { getCurrentUser } from "@/lib/auth";
+import { requirePermission } from "@/lib/permissions";
 import { getPortalUsers, type PortalUser } from "@/lib/user-queries";
 
 export const dynamic = "force-dynamic";
 
 export default async function TeamPage() {
+  await requirePermission("user:write");
   const [me, users] = await Promise.all([getCurrentUser(), getPortalUsers()]);
 
   // Internal backoffice staff vs. drivers (the app's end users).

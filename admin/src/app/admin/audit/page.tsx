@@ -6,6 +6,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { getAuditActionTypes, getAuditTrail } from "@/lib/audit-queries";
+import { requirePermission } from "@/lib/permissions";
 
 export const dynamic = "force-dynamic";
 
@@ -14,6 +15,7 @@ export default async function AuditPage({
 }: {
   searchParams: Promise<{ action?: string; actor?: string; from?: string; to?: string }>;
 }) {
+  await requirePermission("audit:read");
   const sp = await searchParams;
   const filters = { action: sp.action, actor: sp.actor, from: sp.from, to: sp.to };
   const [entries, actions] = await Promise.all([getAuditTrail(filters), getAuditActionTypes()]);
