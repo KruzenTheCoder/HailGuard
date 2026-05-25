@@ -146,6 +146,39 @@ export function ReportsClient({
     return Math.max(1, ...distributionData.map((d) => d[1]));
   }, [distributionData]);
 
+  const totalCount = useMemo(() => {
+    return distributionData.reduce((sum, d) => sum + d[1], 0);
+  }, [distributionData]);
+
+  const donutSegments = useMemo(() => {
+    let accumulatedPercent = 0;
+    const COLORS = [
+      "#16BE66", // Emerald
+      "#0D2236", // Navy
+      "#F5A623", // Amber
+      "#3B82F6", // Blue
+      "#8B5CF6", // Purple
+      "#EC4899", // Pink
+      "#E5484D", // Red
+    ];
+
+    return distributionData.map(([label, count], idx) => {
+      const percent = totalCount > 0 ? (count / totalCount) * 100 : 0;
+      const strokeLength = (percent / 100) * 314.16;
+      const strokeOffset = 314.16 - ((accumulatedPercent / 100) * 314.16) + 78.54;
+      accumulatedPercent += percent;
+
+      return {
+        label,
+        count,
+        percent: Math.round(percent),
+        strokeLength,
+        strokeOffset,
+        color: COLORS[idx % COLORS.length],
+      };
+    });
+  }, [distributionData, totalCount]);
+
   // Printing PDF
   function handlePrint() {
     window.print();
@@ -381,110 +414,251 @@ export function ReportsClient({
 
         {/* Visual Charts Row */}
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-          {/* Trend Line/Histogram Chart Card */}
+          {/* Enhanced Mixed Bar & Line Trend Chart */}
           <Card className="flex flex-col">
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground uppercase tracking-wider">
-                {activeTab === "incidents" ? "Incident Frequency Trend" : activeTab === "drivers" ? "New Registrations Profile Timeline" : "Active Compliance Passes Issued"}
+              <CardTitle className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">
+                {activeTab === "incidents" ? "Incident Volumetrics Trend Analysis" : activeTab === "drivers" ? "New Registrations Profile Timeline" : "Active Compliance Passes Issued"}
               </CardTitle>
             </CardHeader>
-            <CardContent className="flex-1 flex flex-col justify-end min-h-[220px] gap-4 pt-4">
-              {/* SVG Trend Area Chart */}
-              <div className="relative flex-1 w-full h-36 flex items-end">
-                <svg
-                  className="w-full h-full"
-                  viewBox="0 0 400 120"
-                  preserveAspectRatio="none"
-                >
-                  {/* Gradients */}
-                  <defs>
-                    <linearGradient id="chartGrad" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor="#16BE66" stopOpacity="0.25" />
-                      <stop offset="100%" stopColor="#16BE66" stopOpacity="0.0" />
-                    </linearGradient>
-                  </defs>
-
-                  {/* Draw area */}
-                  {chartData.length > 1 && (() => {
+            <CardContent className="flex-1 flex flex-col justify-between pt-4">
+              <div className="relative w-full h-56">
+                <svg className="w-full h-full" viewBox="0 0 500 240">
+                  {/* Grid Lines & Y-Axis Labels */}
+                  {(() => {
                     const maxVal = Math.max(1, ...chartData);
-                    const widthUnit = 400 / (chartData.length - 1);
-                    const points = chartData.map((val, idx) => {
-                      const x = idx * widthUnit;
-                      const y = 110 - (val / maxVal) * 90;
-                      return `${x},${y}`;
-                    });
-
-                    const areaPath = `0,120 ${points.join(" ")} 400,120`;
-                    const linePath = points.join(" ");
+                    const yTicks = [
+                      maxVal,
+                      Math.round(maxVal * 0.75),
+                      Math.round(maxVal * 0.5),
+                      Math.round(maxVal * 0.25),
+                      0
+                    ];
+                    const yGridCoords = [30, 72.5, 115, 157.5, 200];
 
                     return (
                       <>
-                        <path d={areaPath} fill="url(#chartGrad)" />
-                        <path
-                          d={linePath}
-                          fill="none"
-                          stroke="#16BE66"
-                          strokeWidth="2.5"
-                          strokeLinecap="round"
-                        />
-                        {/* Interactive Data Dots */}
-                        {points.map((p, i) => {
-                          const [x, y] = p.split(",");
-                          return (
-                            <circle
-                              key={i}
-                              cx={x}
-                              cy={y}
-                              r="3.5"
-                              fill="#FFFFFF"
-                              stroke="#16BE66"
-                              strokeWidth="2"
+                        {/* Grid lines */}
+                        {yGridCoords.map((y, idx) => (
+                          <g key={idx}>
+                            <line
+                              x1="45"
+                              y1={y}
+                              x2="480"
+                              y2={y}
+                              stroke="#E3E8ED"
+                              strokeWidth="1"
+                              strokeDasharray={idx === 4 ? "0" : "3 3"}
                             />
+                            <text
+                              x="38"
+                              y={y + 4}
+                              textAnchor="end"
+                              fontSize="9"
+                              fontWeight="bold"
+                              className="fill-muted-foreground"
+                            >
+                              {yTicks[idx]}
+                            </text>
+                          </g>
+                        ))}
+
+                        {/* X-Axis Ticks & Dates */}
+                        <line x1="45" y1="200" x2="480" y2="200" stroke="#0B1B2D" strokeWidth="1.5" />
+                        <line x1="45" y1="200" x2="45" y2="205" stroke="#0B1B2D" strokeWidth="1.5" />
+                        <line x1="262.5" y1="200" x2="262.5" y2="205" stroke="#0B1B2D" strokeWidth="1.5" />
+                        <line x1="480" y1="200" x2="480" y2="205" stroke="#0B1B2D" strokeWidth="1.5" />
+
+                        {/* X-Axis Dates */}
+                        <text x="45" y="218" fontSize="9" fontWeight="bold" className="fill-muted-foreground">
+                          {dateRange.start.toLocaleDateString("en-ZA")}
+                        </text>
+                        <text x="262.5" y="218" textAnchor="middle" fontSize="9" fontWeight="bold" className="fill-muted-foreground">
+                          {new Date((dateRange.start.getTime() + dateRange.end.getTime()) / 2).toLocaleDateString("en-ZA")}
+                        </text>
+                        <text x="480" y="218" textAnchor="end" fontSize="9" fontWeight="bold" className="fill-muted-foreground">
+                          {dateRange.end.toLocaleDateString("en-ZA")}
+                        </text>
+
+                        {/* Mixed Bar and Line plot */}
+                        {chartData.length > 0 && (() => {
+                          const barWidth = Math.max(2, (435 - 3 * (chartData.length - 1)) / chartData.length);
+                          
+                          // Line point coordinates
+                          const points = chartData.map((val, idx) => {
+                            const x = 45 + idx * (barWidth + 3) + barWidth / 2;
+                            const y = 200 - (val / maxVal) * 170;
+                            return { x, y, val };
+                          });
+
+                          const linePath = points.map((p) => `${p.x},${p.y}`).join(" ");
+
+                          return (
+                            <>
+                              {/* Draw Bars */}
+                              {points.map((p, i) => {
+                                const barHeight = (p.val / maxVal) * 170;
+                                return (
+                                  <rect
+                                    key={i}
+                                    x={p.x - barWidth / 2}
+                                    y={200 - barHeight}
+                                    width={barWidth}
+                                    height={Math.max(1, barHeight)}
+                                    fill="#16BE66"
+                                    opacity="0.35"
+                                    rx="2.5"
+                                    ry="2.5"
+                                    className="transition-all duration-300 hover:opacity-75"
+                                  />
+                                );
+                              })}
+
+                              {/* Line Curve Overlay */}
+                              {chartData.length > 1 && (
+                                <path
+                                  d={`M ${linePath}`}
+                                  fill="none"
+                                  stroke="#16BE66"
+                                  strokeWidth="2.5"
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                />
+                              )}
+
+                              {/* Anchor Interactive Dots */}
+                              {points.map((p, i) => (
+                                <circle
+                                  key={i}
+                                  cx={p.x}
+                                  cy={p.y}
+                                  r="3"
+                                  fill="#FFFFFF"
+                                  stroke="#16BE66"
+                                  strokeWidth="2"
+                                />
+                              ))}
+                            </>
                           );
-                        })}
+                        })()}
+
+                        {/* Axis Title Labels */}
+                        <text
+                          transform="rotate(-90)"
+                          x="-115"
+                          y="10"
+                          textAnchor="middle"
+                          fontSize="9"
+                          fontWeight="bold"
+                          className="fill-muted-foreground uppercase tracking-wider"
+                        >
+                          Audit Volume (Count)
+                        </text>
+                        <text
+                          x="262.5"
+                          y="235"
+                          textAnchor="middle"
+                          fontSize="9"
+                          fontWeight="bold"
+                          className="fill-muted-foreground uppercase tracking-wider"
+                        >
+                          Reporting Timeline
+                        </text>
                       </>
                     );
                   })()}
                 </svg>
               </div>
-
-              {/* Chart Footer description */}
-              <div className="flex items-center justify-between text-[10px] text-muted-foreground uppercase tracking-wider font-semibold border-t border-border pt-2">
-                <span>{dateRange.start.toLocaleDateString("en-ZA")}</span>
-                <span>Trend Histogram over active date range</span>
-                <span>{dateRange.end.toLocaleDateString("en-ZA")}</span>
-              </div>
             </CardContent>
           </Card>
 
-          {/* Breakdown distribution list card */}
+          {/* Premium Donut Chart Breakdown Card */}
           <Card className="flex flex-col">
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground uppercase tracking-wider">
-                {activeTab === "incidents" ? "Incidents Breakdown by Category" : activeTab === "drivers" ? "Drivers Profile Status Distribution" : "Subscriptions Density per Zone"}
+              <CardTitle className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">
+                {activeTab === "incidents" ? "Incident Breakdowns" : activeTab === "drivers" ? "Drivers Profile Status Distribution" : "Subscriptions Density per Zone"}
               </CardTitle>
             </CardHeader>
-            <CardContent className="flex-1 flex flex-col gap-3.5 pt-4">
+            <CardContent className="flex-1 flex flex-col pt-4">
               {distributionData.length === 0 ? (
-                <div className="text-center text-sm text-muted-foreground py-8 my-auto">
+                <div className="text-center text-sm text-muted-foreground py-12 my-auto">
                   No active dataset matching the filters.
                 </div>
               ) : (
-                distributionData.map(([key, count]) => (
-                  <div key={key} className="flex flex-col gap-1.5">
-                    <div className="flex items-center justify-between text-xs font-medium">
-                      <span className="capitalize text-foreground/80">{key.replace("_", " ")}</span>
-                      <span className="font-semibold text-foreground">{count} {count === 1 ? "entry" : "entries"}</span>
-                    </div>
-                    {/* Visual Progress Bar */}
-                    <div className="h-2.5 w-full bg-muted rounded-full overflow-hidden border border-border/20">
-                      <div
-                        className="h-full rounded-full bg-primary"
-                        style={{ width: `${(count / distMax) * 100}%` }}
+                <div className="flex flex-col md:flex-row items-center justify-around gap-6 h-full">
+                  {/* Left: Donut Circle SVG */}
+                  <div className="relative w-44 h-44 shrink-0 flex items-center justify-center">
+                    <svg className="w-full h-full" viewBox="0 0 220 220">
+                      {/* Background circle ring */}
+                      <circle
+                        cx="110"
+                        cy="110"
+                        r="50"
+                        fill="none"
+                        stroke="#E3E8ED"
+                        strokeWidth="18"
                       />
-                    </div>
+                      
+                      {/* Segments */}
+                      {donutSegments.map((seg, idx) => (
+                        <circle
+                          key={idx}
+                          cx="110"
+                          cy="110"
+                          r="50"
+                          fill="none"
+                          stroke={seg.color}
+                          strokeWidth="18"
+                          strokeDasharray={`${seg.strokeLength} 314.16`}
+                          strokeDashoffset={seg.strokeOffset}
+                          strokeLinecap="butt"
+                        />
+                      ))}
+
+                      {/* Donut Center text */}
+                      <text
+                        x="110"
+                        y="108"
+                        textAnchor="middle"
+                        fontSize="20"
+                        fontWeight="bold"
+                        className="fill-foreground"
+                      >
+                        {totalCount}
+                      </text>
+                      <text
+                        x="110"
+                        y="124"
+                        textAnchor="middle"
+                        fontSize="9"
+                        fontWeight="bold"
+                        className="fill-muted-foreground uppercase tracking-wider"
+                      >
+                        Total
+                      </text>
+                    </svg>
                   </div>
-                ))
+
+                  {/* Right: Premium Tabular Legend */}
+                  <div className="flex-1 w-full flex flex-col gap-2 bg-muted/20 border border-border/40 p-4 rounded-xl max-h-48 overflow-y-auto">
+                    {donutSegments.map((seg, idx) => (
+                      <div key={idx} className="flex items-center justify-between text-xs font-semibold">
+                        <div className="flex items-center gap-2 truncate max-w-[120px]">
+                          <span className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: seg.color }} />
+                          <span className="capitalize truncate text-foreground/80">
+                            {seg.label.replace("_", " ")}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-2.5 text-right shrink-0">
+                          <span className="text-muted-foreground">{seg.count} qty</span>
+                          <span className="text-foreground bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded font-bold">
+                            {seg.percent}%
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
               )}
             </CardContent>
           </Card>
