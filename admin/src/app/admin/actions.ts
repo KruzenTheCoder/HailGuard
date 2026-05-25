@@ -552,14 +552,39 @@ export async function sendChatSupportMessage(roomId: string, message: string) {
   if (!message.trim()) throw new Error("Message cannot be empty.");
 
   const supabase = await createClient();
-  const { error } = await supabase.from("chat_messages").insert({
-    room_id: roomId,
-    sender_id: me.id,
-    message: message.trim(),
-  });
+  const { data, error } = await supabase
+    .from("chat_messages")
+    .insert({
+      room_id: roomId,
+      sender_id: me.id,
+      message: message.trim(),
+    })
+    .select(`
+      id,
+      room_id,
+      sender_id,
+      message,
+      created_at,
+      users:sender_id (
+        full_name,
+        role
+      )
+    `)
+    .single();
+
   if (error) throw new Error(error.message);
   
   revalidateAdmin();
+
+  return {
+    id: data.id,
+    roomId: data.room_id,
+    senderId: data.sender_id,
+    senderName: (data.users as any)?.full_name || "Support Agent",
+    senderRole: (data.users as any)?.role || "staff",
+    message: data.message,
+    createdAt: data.created_at,
+  };
 }
 
 export async function setChatRoomStatus(roomId: string, status: "open" | "resolved") {

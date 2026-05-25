@@ -186,12 +186,44 @@ export function ChatsClient({ myUserId }: { myUserId: string }) {
     const currentText = messageText.trim();
     setMessageText("");
 
+    // Optimistically add the message to the current thread immediately
+    const tempMsgId = Math.random().toString(36).substring(7);
+    const tempMsg: ChatMessage = {
+      id: tempMsgId,
+      roomId: activeRoom,
+      senderId: myUserId,
+      senderName: "Support Agent",
+      senderRole: "staff",
+      message: currentText,
+      createdAt: new Date().toISOString(),
+    };
+
+    setMessages((prev) => [...prev, tempMsg]);
+
+    // Optimistically update the room in the sidebar queue so it shows the last message and bubbles to the top
+    setRooms((prevRooms) =>
+      prevRooms
+        .map((r) =>
+          r.id === activeRoom
+            ? { ...r, lastMessage: currentText, updatedAt: new Date().toISOString() }
+            : r
+        )
+        .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())
+    );
+
     startTransition(async () => {
       try {
-        await sendChatSupportMessage(activeRoom, currentText);
+        const newMsg = await sendChatSupportMessage(activeRoom, currentText);
+        setMessages((prev) =>
+          prev.map((m) => (m.id === tempMsgId ? newMsg : m))
+        );
+        // Silently reload the rooms list to keep counts and status fully synchronized
+        loadRooms();
       } catch (err) {
         toast.error(err instanceof Error ? err.message : "Failed to send message");
-        setMessageText(currentText); // restore
+        setMessages((prev) => prev.filter((m) => m.id !== tempMsgId));
+        setMessageText(currentText); // restore input
+        loadRooms(); // restore original rooms
       }
     });
   }

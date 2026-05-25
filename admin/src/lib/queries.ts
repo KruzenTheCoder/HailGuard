@@ -477,6 +477,7 @@ export type SubscriptionListItem = {
   zoneName: string;
   vehicleLabel: string;
   driverName: string;
+  driverId: string | null;
 };
 
 type SubscriptionListRow = {
@@ -492,7 +493,7 @@ type SubscriptionListRow = {
     make: string;
     model: string;
     license_plate: string;
-    driver_profiles: { users: UserLite | null } | null;
+    driver_profiles: { id: string; users: UserLite | null } | null;
   } | null;
 };
 
@@ -501,7 +502,7 @@ export async function getSubscriptions(): Promise<SubscriptionListItem[]> {
   const { data } = await supabase
     .from("subscriptions")
     .select(
-      "*, zones(name), vehicles(make, model, license_plate, driver_profiles(users(id, full_name, email, phone_number)))"
+      "*, zones(name), vehicles(make, model, license_plate, driver_profiles(id, users(id, full_name, email, phone_number)))"
     )
     .order("created_at", { ascending: false })
     .returns<SubscriptionListRow[]>();
@@ -520,6 +521,7 @@ export async function getSubscriptions(): Promise<SubscriptionListItem[]> {
         ? `${row.vehicles.make} ${row.vehicles.model} · ${row.vehicles.license_plate}`
         : "Vehicle",
       driverName: user?.full_name || user?.email || user?.phone_number || "Unknown driver",
+      driverId: row.vehicles?.driver_profiles?.id ?? null,
     };
   });
 }

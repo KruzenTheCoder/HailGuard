@@ -152,6 +152,18 @@ export default function SupportChatScreen() {
     const currentText = inputText.trim();
     setInputText('');
 
+    // Optimistically add the message to the list immediately
+    const tempMsgId = Math.random().toString(36).substring(7);
+    const tempMsg: Message = {
+      id: tempMsgId,
+      room_id: roomId,
+      sender_id: userId,
+      message: currentText,
+      created_at: new Date().toISOString(),
+    };
+
+    setMessages((prev) => [...prev, tempMsg]);
+
     try {
       if (roomStatus === 'resolved') {
         await supabase
@@ -161,13 +173,26 @@ export default function SupportChatScreen() {
         setRoomStatus('open');
       }
 
-      await supabase.from('chat_messages').insert({
-        room_id: roomId,
-        sender_id: userId,
-        message: currentText,
-      });
+      const { data: newMsg, error } = await supabase
+        .from('chat_messages')
+        .insert({
+          room_id: roomId,
+          sender_id: userId,
+          message: currentText,
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      if (newMsg) {
+        setMessages((prev) =>
+          prev.map((m) => (m.id === tempMsgId ? (newMsg as Message) : m))
+        );
+      }
     } catch (err) {
       console.error('Failed to send support message:', err);
+      setMessages((prev) => prev.filter((m) => m.id !== tempMsgId));
       setInputText(currentText);
     }
   }

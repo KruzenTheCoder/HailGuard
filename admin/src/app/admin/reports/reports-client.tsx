@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useRef, useEffect } from "react";
 import {
   BarChart3,
   Calendar,
@@ -36,11 +36,35 @@ export function ReportsClient({
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
 
+  const [containerWidth, setContainerWidth] = useState(650);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!containerRef.current) return;
+    const resizeObserver = new ResizeObserver((entries) => {
+      for (let entry of entries) {
+        setContainerWidth(entry.contentRect.width || 650);
+      }
+    });
+    resizeObserver.observe(containerRef.current);
+    return () => resizeObserver.disconnect();
+  }, []);
+
   // Report specific filters
+  const [selectedDriverId, setSelectedDriverId] = useState("all");
   const [incidentStatus, setIncidentStatus] = useState("all");
   const [incidentType, setIncidentType] = useState("all");
   const [driverStatus, setDriverStatus] = useState("all");
   const [subscriptionStatus, setSubscriptionStatus] = useState("all");
+
+  const driverList = useMemo(() => {
+    return initialDrivers
+      .map((d) => ({
+        id: d.profile.id,
+        name: d.user?.full_name || d.user?.email || "Unknown Driver",
+      }))
+      .sort((a, b) => a.name.localeCompare(b.name));
+  }, [initialDrivers]);
 
   // --- Date filtering logic ---
   const dateRange = useMemo(() => {
@@ -73,27 +97,30 @@ export function ReportsClient({
       if (d < dateRange.start || d > dateRange.end) return false;
       if (incidentStatus !== "all" && i.status !== incidentStatus) return false;
       if (incidentType !== "all" && i.incidentType !== incidentType) return false;
+      if (selectedDriverId !== "all" && i.driverId !== selectedDriverId) return false;
       return true;
     });
-  }, [initialIncidents, dateRange, incidentStatus, incidentType]);
+  }, [initialIncidents, dateRange, incidentStatus, incidentType, selectedDriverId]);
 
   const filteredDrivers = useMemo(() => {
     return initialDrivers.filter((d) => {
       const date = new Date(d.profile.createdAt);
       if (date < dateRange.start || date > dateRange.end) return false;
       if (driverStatus !== "all" && d.profile.status !== driverStatus) return false;
+      if (selectedDriverId !== "all" && d.profile.id !== selectedDriverId) return false;
       return true;
     });
-  }, [initialDrivers, dateRange, driverStatus]);
+  }, [initialDrivers, dateRange, driverStatus, selectedDriverId]);
 
   const filteredSubscriptions = useMemo(() => {
     return initialSubscriptions.filter((s) => {
       const d = new Date(s.startDate || s.createdAt);
       if (d < dateRange.start || d > dateRange.end) return false;
       if (subscriptionStatus !== "all" && s.status !== subscriptionStatus) return false;
+      if (selectedDriverId !== "all" && s.driverId !== selectedDriverId) return false;
       return true;
     });
-  }, [initialSubscriptions, dateRange, subscriptionStatus]);
+  }, [initialSubscriptions, dateRange, subscriptionStatus, selectedDriverId]);
 
   // Daily trend builder (last 30/7 days sparkline SVG)
   const chartData = useMemo(() => {
@@ -310,8 +337,8 @@ export function ReportsClient({
             </div>
 
             {/* Date range selection */}
-            <div className="flex items-center gap-2 flex-wrap">
-              <div className="flex rounded-md bg-muted p-1 text-xs">
+            <div className="flex items-center gap-2 flex-wrap shrink-0">
+              <div className="flex rounded-lg bg-muted p-1 text-xs flex-row flex-nowrap items-center shrink-0 min-h-[36px]">
                 {(["7d", "30d", "90d", "all"] as DatePreset[]).map((p) => (
                   <button
                     key={p}
@@ -320,7 +347,7 @@ export function ReportsClient({
                       setStartDate("");
                       setEndDate("");
                     }}
-                    className={`rounded px-2.5 py-1 font-semibold uppercase ${
+                    className={`rounded-md px-3.5 py-1.5 min-w-[44px] text-center font-bold uppercase transition-all cursor-pointer ${
                       datePreset === p && !startDate ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
                     }`}
                   >
@@ -339,7 +366,7 @@ export function ReportsClient({
                     setStartDate(e.target.value);
                     setDatePreset("all");
                   }}
-                  className="h-8 py-0 px-2 w-32 rounded-lg"
+                  className="h-8 py-0 px-2 w-40 rounded-lg cursor-pointer"
                 />
                 <span className="text-muted-foreground">to</span>
                 <Input
@@ -349,19 +376,31 @@ export function ReportsClient({
                     setEndDate(e.target.value);
                     setDatePreset("all");
                   }}
-                  className="h-8 py-0 px-2 w-32 rounded-lg"
+                  className="h-8 py-0 px-2 w-40 rounded-lg cursor-pointer"
                 />
               </div>
             </div>
 
             {/* Tab specific dropdown filters */}
-            <div className="flex-1 flex gap-2 justify-end w-full md:w-auto">
+            <div className="flex-1 flex gap-2 justify-end w-full md:w-auto flex-wrap">
+              {/* Driver filter dropdown */}
+              <select
+                value={selectedDriverId}
+                onChange={(e) => setSelectedDriverId(e.target.value)}
+                className="h-9 rounded-lg border border-border bg-card px-3 text-xs focus:outline-none focus:ring-1 focus:ring-primary w-full md:w-44 cursor-pointer"
+              >
+                <option value="all">All Drivers</option>
+                {driverList.map((d) => (
+                  <option key={d.id} value={d.id}>{d.name}</option>
+                ))}
+              </select>
+
               {activeTab === "incidents" && (
                 <>
                   <select
                     value={incidentStatus}
                     onChange={(e) => setIncidentStatus(e.target.value)}
-                    className="h-9 rounded-lg border border-border bg-card px-3 text-xs focus:outline-none focus:ring-1 focus:ring-primary w-full md:w-36"
+                    className="h-9 rounded-lg border border-border bg-card px-3 text-xs focus:outline-none focus:ring-1 focus:ring-primary w-full md:w-36 cursor-pointer"
                   >
                     <option value="all">All Statuses</option>
                     <option value="open">Open</option>
@@ -371,7 +410,7 @@ export function ReportsClient({
                   <select
                     value={incidentType}
                     onChange={(e) => setIncidentType(e.target.value)}
-                    className="h-9 rounded-lg border border-border bg-card px-3 text-xs focus:outline-none focus:ring-1 focus:ring-primary w-full md:w-36"
+                    className="h-9 rounded-lg border border-border bg-card px-3 text-xs focus:outline-none focus:ring-1 focus:ring-primary w-full md:w-36 cursor-pointer"
                   >
                     <option value="all">All Types</option>
                     <option value="sos">SOS Panic</option>
@@ -386,7 +425,7 @@ export function ReportsClient({
                 <select
                   value={driverStatus}
                   onChange={(e) => setDriverStatus(e.target.value)}
-                  className="h-9 rounded-lg border border-border bg-card px-3 text-xs focus:outline-none focus:ring-1 focus:ring-primary w-full md:w-40"
+                  className="h-9 rounded-lg border border-border bg-card px-3 text-xs focus:outline-none focus:ring-1 focus:ring-primary w-full md:w-40 cursor-pointer"
                 >
                   <option value="all">All Statuses</option>
                   <option value="approved">Approved / Compliant</option>
@@ -399,7 +438,7 @@ export function ReportsClient({
                 <select
                   value={subscriptionStatus}
                   onChange={(e) => setSubscriptionStatus(e.target.value)}
-                  className="h-9 rounded-lg border border-border bg-card px-3 text-xs focus:outline-none focus:ring-1 focus:ring-primary w-full md:w-44"
+                  className="h-9 rounded-lg border border-border bg-card px-3 text-xs focus:outline-none focus:ring-1 focus:ring-primary w-full md:w-44 cursor-pointer"
                 >
                   <option value="all">All Subscription States</option>
                   <option value="active">Active Pass</option>
@@ -422,8 +461,8 @@ export function ReportsClient({
               </CardTitle>
             </CardHeader>
             <CardContent className="flex-1 flex flex-col justify-between pt-4">
-              <div className="relative w-full h-56">
-                <svg className="w-full h-full" viewBox="0 0 500 240">
+              <div ref={containerRef} className="relative w-full h-56">
+                <svg className="w-full h-full" viewBox={`0 0 ${containerWidth} 240`}>
                   {/* Grid Lines & Y-Axis Labels */}
                   {(() => {
                     const maxVal = Math.max(1, ...chartData);
@@ -435,6 +474,10 @@ export function ReportsClient({
                       0
                     ];
                     const yGridCoords = [30, 72.5, 115, 157.5, 200];
+                    const x1 = 45;
+                    const x2 = containerWidth - 20;
+                    const xMid = (x1 + x2) / 2;
+                    const plotWidth = x2 - x1;
 
                     return (
                       <>
@@ -442,9 +485,9 @@ export function ReportsClient({
                         {yGridCoords.map((y, idx) => (
                           <g key={idx}>
                             <line
-                              x1="45"
+                              x1={x1}
                               y1={y}
-                              x2="480"
+                              x2={x2}
                               y2={y}
                               stroke="#E3E8ED"
                               strokeWidth="1"
@@ -464,29 +507,29 @@ export function ReportsClient({
                         ))}
 
                         {/* X-Axis Ticks & Dates */}
-                        <line x1="45" y1="200" x2="480" y2="200" stroke="#0B1B2D" strokeWidth="1.5" />
-                        <line x1="45" y1="200" x2="45" y2="205" stroke="#0B1B2D" strokeWidth="1.5" />
-                        <line x1="262.5" y1="200" x2="262.5" y2="205" stroke="#0B1B2D" strokeWidth="1.5" />
-                        <line x1="480" y1="200" x2="480" y2="205" stroke="#0B1B2D" strokeWidth="1.5" />
+                        <line x1={x1} y1="200" x2={x2} y2="200" stroke="#0B1B2D" strokeWidth="1.5" />
+                        <line x1={x1} y1="200" x2={x1} y2="205" stroke="#0B1B2D" strokeWidth="1.5" />
+                        <line x1={xMid} y1="200" x2={xMid} y2="205" stroke="#0B1B2D" strokeWidth="1.5" />
+                        <line x1={x2} y1="200" x2={x2} y2="205" stroke="#0B1B2D" strokeWidth="1.5" />
 
                         {/* X-Axis Dates */}
-                        <text x="45" y="218" fontSize="9" fontWeight="bold" className="fill-muted-foreground">
+                        <text x={x1} y="218" fontSize="9" fontWeight="bold" className="fill-muted-foreground">
                           {dateRange.start.toLocaleDateString("en-ZA")}
                         </text>
-                        <text x="262.5" y="218" textAnchor="middle" fontSize="9" fontWeight="bold" className="fill-muted-foreground">
+                        <text x={xMid} y="218" textAnchor="middle" fontSize="9" fontWeight="bold" className="fill-muted-foreground">
                           {new Date((dateRange.start.getTime() + dateRange.end.getTime()) / 2).toLocaleDateString("en-ZA")}
                         </text>
-                        <text x="480" y="218" textAnchor="end" fontSize="9" fontWeight="bold" className="fill-muted-foreground">
+                        <text x={x2} y="218" textAnchor="end" fontSize="9" fontWeight="bold" className="fill-muted-foreground">
                           {dateRange.end.toLocaleDateString("en-ZA")}
                         </text>
 
                         {/* Mixed Bar and Line plot */}
                         {chartData.length > 0 && (() => {
-                          const barWidth = Math.max(2, (435 - 3 * (chartData.length - 1)) / chartData.length);
+                          const barWidth = Math.max(2, (plotWidth - 3 * (chartData.length - 1)) / chartData.length);
                           
                           // Line point coordinates
                           const points = chartData.map((val, idx) => {
-                            const x = 45 + idx * (barWidth + 3) + barWidth / 2;
+                            const x = x1 + idx * (barWidth + 3) + barWidth / 2;
                             const y = 200 - (val / maxVal) * 170;
                             return { x, y, val };
                           });
@@ -555,7 +598,7 @@ export function ReportsClient({
                           Audit Volume (Count)
                         </text>
                         <text
-                          x="262.5"
+                          x={xMid}
                           y="235"
                           textAnchor="middle"
                           fontSize="9"
@@ -573,21 +616,21 @@ export function ReportsClient({
           </Card>
 
           {/* Premium Donut Chart Breakdown Card */}
-          <Card className="flex flex-col">
+          <Card className="flex flex-col h-full w-full">
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">
                 {activeTab === "incidents" ? "Incident Breakdowns" : activeTab === "drivers" ? "Drivers Profile Status Distribution" : "Subscriptions Density per Zone"}
               </CardTitle>
             </CardHeader>
-            <CardContent className="flex-1 flex flex-col pt-4">
+            <CardContent className="flex-1 flex flex-col pt-4 h-full w-full justify-center">
               {distributionData.length === 0 ? (
                 <div className="text-center text-sm text-muted-foreground py-12 my-auto">
                   No active dataset matching the filters.
                 </div>
               ) : (
-                <div className="flex flex-col md:flex-row items-center justify-around gap-6 h-full">
+                <div className="flex flex-col md:flex-row items-center justify-between gap-6 h-full w-full">
                   {/* Left: Donut Circle SVG */}
-                  <div className="relative w-44 h-44 shrink-0 flex items-center justify-center">
+                  <div className="relative w-48 h-48 shrink-0 flex items-center justify-center">
                     <svg className="w-full h-full" viewBox="0 0 220 220">
                       {/* Background circle ring */}
                       <circle
@@ -640,7 +683,7 @@ export function ReportsClient({
                   </div>
 
                   {/* Right: Premium Tabular Legend */}
-                  <div className="flex-1 w-full flex flex-col gap-2 bg-muted/20 border border-border/40 p-4 rounded-xl max-h-48 overflow-y-auto">
+                  <div className="flex-1 w-full flex flex-col gap-2.5 bg-muted/20 border border-border/40 p-4 rounded-xl overflow-y-auto h-full min-h-[192px]">
                     {donutSegments.map((seg, idx) => (
                       <div key={idx} className="flex items-center justify-between text-xs font-semibold">
                         <div className="flex items-center gap-2 truncate max-w-[120px]">
