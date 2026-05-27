@@ -1,0 +1,75 @@
+HailGuard Proprietary Software License
+
+Copyright (c) 2026 Kruz Naidoo. All Rights Reserved.
+
+1. Definitions
+   "Software" means the HailGuard platform and all of its source code, object
+   code, designs, database schemas, migrations, documentation, assets, and any
+   accompanying materials contained in this repository, together with any
+   modifications, enhancements, updates, or derivative works thereof.
+   "Author" means Kruz Naidoo, the sole owner and copyright holder of the
+   Software.
+
+2. Ownership
+   The Software is the proprietary and confidential property of the Author and
+   is protected by copyright and other intellectual property laws. The Author
+   retains all right, title, and interest in and to the Software, including all
+   intellectual property rights therein. No ownership rights are transferred by
+   this License.
+
+3. Grant of Rights
+   No license or right to use, copy, modify, merge, publish, distribute,
+   sublicense, sell, lease, display, perform, or create derivative works of the
+   Software is granted, in whole or in part, except under a separate written
+   agreement signed by the Author. Absent such written permission, no rights
+   whatsoever are granted.
+
+4. Restrictions
+   Without the prior express written permission of the Author, you may NOT:
+   (a) use the Software for any purpose, commercial or non-commercial;
+   (b) copy, reproduce, or store the Software except as strictly necessary to
+       evaluate it where the Author has granted access;
+   (c) modify, adapt, translate, or create derivative works of the Software;
+   (d) distribute, publish, sublicense, sell, rent, lease, or otherwise transfer
+       the Software or access to it to any third party;
+   (e) reverse engineer, decompile, or disassemble the Software, except to the
+       extent such restriction is expressly prohibited by applicable law;
+   (f) remove, alter, or obscure any copyright, trademark, or other proprietary
+       notices contained in the Software.
+
+5. Confidentiality
+   The Software contains valuable trade secrets and confidential information of
+   the Author. You agree to maintain the confidentiality of the Software and to
+   not disclose it to any third party without the prior written consent of the
+   Author.
+
+6. Third-Party Components
+   The Software incorporates third-party open-source components that are
+   licensed under their own respective terms (for example, framework and
+   library scaffolding such as the Expo template LICENSE files within the
+   mobile workspaces). Those components remain governed by their original
+   licenses, and nothing in this License modifies or supersedes them. This
+   License applies solely to the original work authored by the Author.
+
+7. No Warranty
+   THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+   IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+   FITNESS FOR A PARTICULAR PURPOSE, AND NONINFRINGEMENT.
+
+8. Limitation of Liability
+   IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY CLAIM, DAMAGES, OR OTHER
+   LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT, OR OTHERWISE, ARISING
+   FROM, OUT OF, OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+   IN THE SOFTWARE.
+
+9. Termination
+   Any rights granted under a separate written agreement terminate automatically
+   upon any breach of this License. Upon termination, you must cease all use of
+   the Software and destroy all copies in your possession or control.
+
+10. Governing Law
+   This License shall be governed by and construed in accordance with the laws
+   of the Republic of South Africa, without regard to its conflict-of-law
+   provisions.
+
+For licensing inquiries, contact the Author: Kruz Naidoo.
